@@ -23,12 +23,19 @@ public class LatencyLayer extends ComponentDefinition {
 
 
     public NodeInfo selfAddress;
-    public Integer[] latency;
+    public LatencyLists latency;
+
+    public Double[] currentLatencies;
 
     public LatencyLayer(LatencyInit init) {
 
         selfAddress = init.selfAddress;
         latency = init.latency;
+
+        currentLatencies = new Double[init.nRings];
+        for(int i = 0; i < init.nRings; i++){
+            currentLatencies[i] = latency.list1.get(0);
+        }
 
         subscribe(handleGoingFromApp, local);
         subscribe(handleGoingToApp, network);
@@ -50,9 +57,9 @@ public class LatencyLayer extends ComponentDefinition {
 
 
             } else {
-                if (latency[event.toRing] > 0) {
-
-                    ScheduleTimeout spt = new ScheduleTimeout(latency[event.toRing]);
+                if (currentLatencies[event.toRing] > 0) {
+                    Long delay = (Long) currentLatencies[event.toRing];
+                    ScheduleTimeout spt = new ScheduleTimeout();
                     LatencyTimer sc = new LatencyTimer(spt, event, 1);
                     spt.setTimeoutEvent(sc);
                     trigger(spt, timer);
@@ -78,7 +85,7 @@ public class LatencyLayer extends ComponentDefinition {
             } else {
 
 
-                if (latency[event.fromRing] > 0) {
+                if (currentLatencies[event.fromRing] > 0) {
 
                     ScheduleTimeout spt = new ScheduleTimeout(latency[event.fromRing]);
                     LatencyTimer sc = new LatencyTimer(spt, event, 2);
@@ -112,11 +119,13 @@ public class LatencyLayer extends ComponentDefinition {
     public static class LatencyInit extends Init<LatencyLayer> {
 
         public NodeInfo selfAddress;
-        public Integer[] latency;
+        public LatencyLists latency;
+        public int nRings;
 
-        public LatencyInit(NodeInfo selfAddress, Integer[] latency){
+        public LatencyInit(NodeInfo selfAddress, int nRings, LatencyLists latency){
             this.selfAddress = selfAddress;
             this.latency = latency;
+            this.nRings = nRings;
         }
 
 

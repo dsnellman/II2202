@@ -38,7 +38,7 @@ public class Application extends ComponentDefinition {
     private List<Integer> itemsKey = new ArrayList<>();
     private ArrayList<Integer> replications;
 
-    private HashMap<Integer, Integer> keyPlacedInRing = new HashMap<>();
+    private HashMap<Integer, KeyPlacedInfo> keyPlacedInRing = new HashMap<>();
 
     private HashMap<Integer, Long> addSendingTimes = new HashMap<>();
     private ArrayList<TestResult> addResult = new ArrayList<>();
@@ -197,19 +197,30 @@ public class Application extends ComponentDefinition {
 
                 Item item = new Item(command.key, command.value);
 
-                keyPlacedInRing.put(command.key, ring);
-
                 addSendingTimes.put(storeCounter, System.currentTimeMillis());
                 trigger(new Add(self, ringNodes[ring], TYPE.ADD, item, storeCounter, self), network);
                 storeCounter++;
 
+                for(int i = 0; i < replicaAddress.size(); i++){
+                    addSendingTimes.put(storeCounter, System.currentTimeMillis());
+                    trigger(new Add(self, replicaAddress.get(i), TYPE.ADDREPLICA, item, storeCounter, self), network);
+                    storeCounter++;
+                }
+
             }
             else if(command.type == Command.TYPE.LOOKUP){
 
-                int ring = keyPlacedInRing.get(command.key);
+                KeyPlacedInfo keyInfo = keyPlacedInRing.get(command.key);
+                int ring;
+                if(keyInfo.ring != -1){
+                    ring = keyInfo.ring;
+                } else {
+                    if(!keyInfo.replicas.isEmpty()){
+                        ring = keyInfo.replicas.get(0);
+                    }
+                }
 
-
-                trigger(new LookUp(self, ringNodes[ring], command.key, self, lookUpCounter), network);
+                trigger(new LookUp(self, ringNodes[keyInfo.ring], command.key, self, lookUpCounter), network);
                 lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
                 lookUpCounter++;
 
@@ -259,6 +270,27 @@ public class Application extends ComponentDefinition {
             Long external2 = time - msg.endInnerLatency;
             Long total = external1 + internal + external2;
             //log.info("{} Add from ring {}, Ex {} + {} int {} total {} = {} ", new Object[]{self, msg.fromRing, external1, external2, internal, total, totalTime});
+
+            if(keyPlacedInRing.containsKey(msg.key)){
+
+                if(msg.type == 1){
+                    keyPlacedInRing.get(msg.key).ring = msg.fromRing;
+                } else {
+                    keyPlacedInRing.get(msg.key).replicas.add(msg.fromRing);
+                }
+
+            } else {
+                KeyPlacedInfo keyInfo = new KeyPlacedInfo();
+                if(msg.type == 1){
+                    keyInfo.ring = msg.fromRing;
+                } else {
+                    keyInfo.replicas.add(msg.fromRing);
+                }
+                keyPlacedInRing.put(msg.key, keyInfo);
+
+            }
+
+
 
             addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total));
             ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));

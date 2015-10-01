@@ -48,11 +48,11 @@ public class App extends ComponentDefinition {
         public int m;
         public NodeInfo app;
         public int nRings;
-        public Integer[] latency;
+        public LatencyLists latency;
         public ArrayList<Integer> replications;
         public  NodeInfo[] ringNodes;
 
-        public AppInit(NodeInfo app, int m, int nRings, Integer[] latency, ArrayList<Integer> replications,  NodeInfo[] ringNodes){
+        public AppInit(NodeInfo app, int m, int nRings, LatencyLists latency, ArrayList<Integer> replications,  NodeInfo[] ringNodes){
             this.m = m;
             this.app = app;
             this.latency = latency;

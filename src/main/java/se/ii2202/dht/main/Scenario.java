@@ -32,11 +32,12 @@ public class Scenario {
 
     private static Random rand = new Random();
 
+    public static LatencyLists latencies;
 
     // SIMULATION VARIABLES
 
     private final static int M = 12; //Number of bits in identifier
-    private final static int nNode = 500; //Number of nodes in each ring
+    private final static int nNode = 100; //Number of nodes in each ring
     private final static int nRings = 5; //Number of rings
     private final static int nApps = 10; //Number of applications
 
@@ -137,7 +138,7 @@ public class Scenario {
 
 
                     //Apps.add(applicationAddress);
-                    return new App.AppInit(applicationAddress, M, nRings, latency.get(latencyIndex), replications, firstNodes);
+                    return new App.AppInit(applicationAddress, M, nRings, latencies, replications, firstNodes);
                 }
 
                 public Integer getNodeId() {
@@ -239,6 +240,9 @@ public class Scenario {
 
 
     public static SimulationScenario start() {
+
+        latencies = new LatencyLists();
+
 
         SimulationScenario scen = new SimulationScenario() {
             {

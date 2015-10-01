@@ -15,9 +15,8 @@ public class Add extends AppMessage<Object>{
     public NodeInfo returnAddress;
     public Long startInnerLatency;
     public int msgCounter;
-    public ArrayList<NodeInfo> replicaAddress;
 
-    public Add(NodeInfo src, NodeInfo dst, TYPE type, Item item, int id, NodeInfo returnAddress, ArrayList<NodeInfo> replicaAddress) {
+    public Add(NodeInfo src, NodeInfo dst, TYPE type, Item item, int id, NodeInfo returnAddress){
         super(src, dst);
         this.item = item;
         this.type = type;
@@ -25,10 +24,9 @@ public class Add extends AppMessage<Object>{
         this.msgCounter = 0;
         this.returnAddress = returnAddress;
         this.startInnerLatency = 0L;
-        this.replicaAddress = replicaAddress;
     }
 
-    public Add(NodeInfo src, NodeInfo dst, TYPE type, Item item, int id, NodeInfo returnAddress, Long startInnerLatecy, ArrayList<NodeInfo> replicaAddress) {
+    public Add(NodeInfo src, NodeInfo dst, TYPE type, Item item, int id, NodeInfo returnAddress, Long startInnerLatecy) {
         super(src, dst);
         this.item = item;
         this.type = type;
@@ -36,6 +34,5 @@ public class Add extends AppMessage<Object>{
         this.msgCounter = 0;
         this.returnAddress = returnAddress;
         this.startInnerLatency = startInnerLatecy;
-        this.replicaAddress =replicaAddress;
     }
 }

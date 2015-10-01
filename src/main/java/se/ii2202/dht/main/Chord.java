@@ -434,16 +434,6 @@ public class Chord extends ComponentDefinition {
                     trigger(new AddResponse(self, msg.returnAddress, msg.item.key, msg.id, 1,msg.msgCounter, msg.startInnerLatency, System.currentTimeMillis()), network);
 
 
-                    //log.info("{} => Add item {}", new Object[]{self, msg.item});
-
-                    if(!msg.replicaAddress.isEmpty()){
-                        for(NodeInfo node : msg.replicaAddress){
-                            trigger(new Add(self, node, TYPE.ADDREPLICA, msg.item, msg.id, msg.returnAddress, msg.startInnerLatency, null), network);
-                        }
-
-                    }
-
-
                 }
                 else if(msg.type == TYPE.ADDREPLICA){
                     replicaStorage.add(msg.item);
