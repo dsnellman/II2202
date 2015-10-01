@@ -1,0 +1,6 @@
+
+package se.ii2202.dht.main;
+
+public enum TYPE {
+    JOIN, INIT, INIT_FINGER, OTHERS, STABILIZE, FIX_FINGER, ADD, ADDREPLICA, LOOKUP;
+}

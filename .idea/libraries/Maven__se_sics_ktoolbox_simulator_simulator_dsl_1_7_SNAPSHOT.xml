@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: se.sics.ktoolbox.simulator:simulator-dsl:1.7-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-dsl/1.7-SNAPSHOT/simulator-dsl-1.7-20150930.131050-2.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-dsl/1.7-SNAPSHOT/simulator-dsl-1.7-20150930.131050-2-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-dsl/1.7-SNAPSHOT/simulator-dsl-1.7-20150930.131050-2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

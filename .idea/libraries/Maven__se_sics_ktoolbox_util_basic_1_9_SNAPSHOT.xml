@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: se.sics.ktoolbox.util:basic:1.9-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/util/basic/1.9-SNAPSHOT/basic-1.9-20150930.130927-2.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/util/basic/1.9-SNAPSHOT/basic-1.9-20150930.130927-2-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/util/basic/1.9-SNAPSHOT/basic-1.9-20150930.130927-2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
