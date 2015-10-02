@@ -399,7 +399,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime);
+            int value = rand.nextInt(maxProcessMsgTime) + 1;
             processingAppMsgAdd.put(processedMsgAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgAdd.entrySet().iterator();
@@ -407,7 +407,6 @@ public class Chord extends ComponentDefinition {
                 Map.Entry pair = (Map.Entry) it.next();
                 sleep += (Integer) pair.getValue();
             }
-
             //log.info("{} simulating inner latency for add id: {} value }{} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgAdd.size(), processedMsgAddCounter});
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);
@@ -457,15 +456,14 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime);
+            int value = rand.nextInt(maxProcessMsgTime) + 1;
             processingAppMsgRingAdd.put(processedMsgRingAddCounter, value);
             int sleep = 0;
-            Iterator it = processingAppMsgAdd.entrySet().iterator();
+            Iterator it = processingAppMsgRingAdd.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pair = (Map.Entry) it.next();
                 sleep += (Integer) pair.getValue();
             }
-            log.info("Revecived add, right now {} in line and a {} ms delay", processingAppMsgAdd.size(), sleep);
             //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingAdd.size(), processedMsgRingAddCounter});
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);
@@ -537,7 +535,7 @@ public class Chord extends ComponentDefinition {
                 msg.startInnerLatency = System.currentTimeMillis();
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime);
+            int value = rand.nextInt(maxProcessMsgTime) + 1;
             processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgLookUp.entrySet().iterator();
@@ -604,7 +602,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime);
+            int value = rand.nextInt(maxProcessMsgTime) + 1;
             processingAppMsgRingLookUp.put(processedMsgRingLookUpCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgRingLookUp.entrySet().iterator();
@@ -665,6 +663,8 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(Ping msg) {
             if(self.succ != self)
+                //TODO what to do when receive a ping msg?
+
                 trigger(new RingPing(self, self.succ, msg.returnAddress, msg.startAddress, msg.id, System.currentTimeMillis()), network);
         }
     };
