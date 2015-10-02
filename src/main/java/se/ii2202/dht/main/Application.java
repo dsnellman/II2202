@@ -117,10 +117,7 @@ public class Application extends ComponentDefinition {
             commands.add(new Command(Command.TYPE.SLEEP, 100));
 
             for(int i = 0; i < NUMBER_OF_ADDS; i++) {
-                int index = (NUMBER_OF_ADDS * self.id) + i;
-                if(index >= itemsKey.size()){
-                    index = index - itemsKey.size();
-                }
+                int index = ((NUMBER_OF_ADDS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.ADD, itemsKey.get(index), 500));
                 commands.add(new Command(Command.TYPE.SLEEP, 100));
             }
@@ -129,10 +126,7 @@ public class Application extends ComponentDefinition {
             commands.add(new Command(Command.TYPE.SLEEP, 50000));
 
             for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
-                int index = (NUMBER_OF_LOOKUPS * self.id) + i;
-                if(index >= itemsKey.size()){
-                    index = index - itemsKey.size();
-                }
+                int index = ((NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.LOOKUP, itemsKey.get(index), 500));
                 commands.add(new Command(Command.TYPE.SLEEP, 50));
             }

@@ -37,7 +37,7 @@ public class Scenario {
     private final static int M = 14; //Number of bits in identifier
     private final static int nNode = 100; //Number of nodes in each ring
     private final static int nRings = 5; //Number of rings
-    private final static int nApps = 10; //Number of applications
+    private final static int nApps = 1000; //Number of applications
     private final static int runTime = 1500; //In seconds
 
     private static ArrayList<Integer> replications = new ArrayList<>();
@@ -283,7 +283,7 @@ public class Scenario {
             {
                 StochasticProcess processApp = new StochasticProcess() {
                     {
-                        eventInterArrivalTime(constant(10));
+                        eventInterArrivalTime(uniform(10, 100));
                         raise(appIDs.length, startApp, new GenIntSequentialDistribution(appIDs));
                     }
                 };
