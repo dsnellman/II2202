@@ -57,13 +57,16 @@ public class Application extends ComponentDefinition {
     private Stats stats = new Stats();
 
     private Random rand = new Random();
-    private int NUMBER_OF_ADDS = 1;
-    private int NUMBER_OF_LOOKUPS = 1;
+    private int NUMBER_OF_ADDS = 10;
+    private int NUMBER_OF_LOOKUPS = 10;
     private int PERIODIC_PING_TIMEOUT = 2000;
     private int replications;
 
     //Which strategy to choose rings..
     private String testStrategy = "nFirst";
+    private int n = 1;
+
+
     private boolean randomChoose = false;
     private boolean bestChoose = true;
     private boolean worstChoose = false;
@@ -126,7 +129,7 @@ public class Application extends ComponentDefinition {
             for(int i = 0; i < NUMBER_OF_ADDS; i++) {
                 int index = ((NUMBER_OF_ADDS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.ADD, itemsKey.get(index), 500));
-                commands.add(new Command(Command.TYPE.SLEEP, 100));
+                commands.add(new Command(Command.TYPE.SLEEP, 1000));
             }
 
 
@@ -135,7 +138,7 @@ public class Application extends ComponentDefinition {
             for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
                 int index = ((NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.LOOKUP, itemsKey.get(index), 500));
-                commands.add(new Command(Command.TYPE.SLEEP, 50));
+                commands.add(new Command(Command.TYPE.SLEEP, 1000));
             }
 
 
@@ -162,7 +165,7 @@ public class Application extends ComponentDefinition {
         }
     };
 
-    public ArrayList<RingInfo> chooseRing(int n){
+    public ArrayList<RingInfo> chooseRing(){
         ArrayList<RingInfo> ringAvg = new ArrayList<>();
 
         if(testStrategy == "nFirst") {
@@ -173,12 +176,12 @@ public class Application extends ComponentDefinition {
                 for (RingController controller : ringController.get(i)) {
                     totalRing += controller.totalTime;
                     counter++;
-                    log.info("{} Ring: {}, total time: {}", new Object[]{self, i, controller.totalTime});
+                    //log.info("{} Ring: {}, total time: {}", new Object[]{self, i, controller.totalTime});
                     if (counter == n)
                         break;
                 }
                 ringAvg.add(new RingInfo(i,totalRing / counter));
-                log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, counter, i, totalRing / counter});
+                //log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, counter, i, totalRing / counter});
             }
 
         }
@@ -210,7 +213,7 @@ public class Application extends ComponentDefinition {
 
                 //int ring = bestRing();
                 //int ring = rand.nextInt(nRings);
-                ArrayList<RingInfo> rings = chooseRing(1);
+                ArrayList<RingInfo> rings = chooseRing();
 
                 Item item = new Item(command.key, command.value);
                 SendingInfo si = new SendingInfo();
