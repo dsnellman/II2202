@@ -4,14 +4,11 @@ import java.util.ArrayList;
 
 public class KeyPlacedInfo {
 
-    public int ring = -1;
-    public ArrayList<Integer> replicas;
+
+    public ArrayList<Integer> rings;
 
     public KeyPlacedInfo(){
-        replicas = new ArrayList<>();
+        rings = new ArrayList<>();
     }
 
-    public String toString(){
-        return "ring: " + ring + " replicas: " + replicas.toString();
-    }
 }

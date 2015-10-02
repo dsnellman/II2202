@@ -37,9 +37,9 @@ public class Application extends ComponentDefinition {
     private int M;
     private int nRings;
     private List<Integer> itemsKey = new ArrayList<>();
-    private ArrayList<Integer> replications;
 
-    private HashMap<Integer, KeyPlacedInfo> keyPlacedInRing = new HashMap<>();
+
+    private HashMap<Integer, ArrayList<Integer>> keyPlacedInRing = new HashMap<>();
 
     private HashMap<Integer, SendingInfo> addSendingTimes = new HashMap<>();
     private ArrayList<TestResult> addResult = new ArrayList<>();
@@ -57,9 +57,17 @@ public class Application extends ComponentDefinition {
     private Stats stats = new Stats();
 
     private Random rand = new Random();
-    private int NUMBER_OF_ADDS = 100;
-    private int NUMBER_OF_LOOKUPS = 100;
+    private int NUMBER_OF_ADDS = 1;
+    private int NUMBER_OF_LOOKUPS = 1;
     private int PERIODIC_PING_TIMEOUT = 2000;
+    private int replications;
+
+    //Which strategy to choose rings..
+    private String testStrategy = "nFirst";
+    private boolean randomChoose = false;
+    private boolean bestChoose = true;
+    private boolean worstChoose = false;
+
 
     private int nSavedResponseTime = 10;
 
@@ -113,7 +121,7 @@ public class Application extends ComponentDefinition {
                 e.printStackTrace();
             }
 
-            commands.add(new Command(Command.TYPE.SLEEP, 100));
+            commands.add(new Command(Command.TYPE.SLEEP, 100000));
 
             for(int i = 0; i < NUMBER_OF_ADDS; i++) {
                 int index = ((NUMBER_OF_ADDS * self.id) + i) % 10000;
@@ -154,15 +162,33 @@ public class Application extends ComponentDefinition {
         }
     };
 
-    public int bestRing(){
-        Long bestTime = null;
-        int bestId = -1;
+    public ArrayList<RingInfo> chooseRing(int n){
+        ArrayList<RingInfo> ringAvg = new ArrayList<>();
 
-        for(int i = 0; i < ringController.size(); i++){
+        if(testStrategy == "nFirst") {
 
+            for (int i = 0; i < nRings; i++) {
+                int totalRing = 0;
+                int counter = 0;
+                for (RingController controller : ringController.get(i)) {
+                    totalRing += controller.totalTime;
+                    counter++;
+                    log.info("{} Ring: {}, total time: {}", new Object[]{self, i, controller.totalTime});
+                    if (counter == n)
+                        break;
+                }
+                ringAvg.add(new RingInfo(i,totalRing / counter));
+                log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, counter, i, totalRing / counter});
+            }
 
         }
-        return bestId;
+
+
+
+
+        Collections.sort(ringAvg, new CompareRingInfo());
+        log.info("return ring: {}",ringAvg.toString());
+        return ringAvg;
     }
 
     public void runNextCommand(){
@@ -183,58 +209,60 @@ public class Application extends ComponentDefinition {
             else if(command.type == Command.TYPE.ADD){
 
                 //int ring = bestRing();
-                int ring = rand.nextInt(nRings);
-                ArrayList<NodeInfo> replicaAddress = new ArrayList<>();
-                int index = 0;
-                for(int i : replications){
+                //int ring = rand.nextInt(nRings);
+                ArrayList<RingInfo> rings = chooseRing(1);
 
-                    if(i > 0){
-                        int replica = ring + i;
-                        if(replica >= nRings){
-                            replica = nRings - replica;
+                Item item = new Item(command.key, command.value);
+                SendingInfo si = new SendingInfo();
+                addSendingTimes.put(command.key, si);
+
+                if(bestChoose) {
+                    for (int i = 0; i < replications; i++) {
+                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
+                        si.list.put(storeCounter, System.currentTimeMillis());
+                        trigger(new Add(self, ringNodes[rings.get(i).ring], TYPE.ADD, item, storeCounter, self), network);
+                        storeCounter++;
+                    }
+                } else if(worstChoose){
+                    for (int i = 0; i < replications; i++) {
+                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(rings.size() - i).ring});
+                        si.list.put(storeCounter, System.currentTimeMillis());
+                        trigger(new Add(self, ringNodes[rings.get(rings.size() - i).ring], TYPE.ADD, item, storeCounter, self), network);
+                        storeCounter++;
+                    }
+                } else if(randomChoose){
+                    ArrayList<Integer> temp = new ArrayList<>();
+                    for (int i = 0; i < replications; i++) {
+
+                        si.list.put(storeCounter, System.currentTimeMillis());
+                        int index = rand.nextInt(nRings);
+                        while(temp.contains(index)){
+                            index = rand.nextInt(nRings);
                         }
-
-                        if(replica != ring)
-                            replicaAddress.add(ringNodes[replica]);
-
+                        temp.add(index);
+                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, index});
+                        trigger(new Add(self, ringNodes[index], TYPE.ADD, item, storeCounter, self), network);
+                        storeCounter++;
                     }
 
                 }
 
 
 
-                Item item = new Item(command.key, command.value);
 
-                SendingInfo si = new SendingInfo();
-                si.list.put(storeCounter, System.currentTimeMillis());
-
-                addSendingTimes.put(command.key, si);
-                trigger(new Add(self, ringNodes[ring], TYPE.ADD, item, storeCounter, self), network);
-                storeCounter++;
-
-                for(int i = 0; i < replicaAddress.size(); i++){
-                    si.list.put(storeCounter, System.currentTimeMillis());
-                    trigger(new Add(self, replicaAddress.get(i), TYPE.ADDREPLICA, item, storeCounter, self), network);
-                    storeCounter++;
-                }
 
             }
             else if(command.type == Command.TYPE.LOOKUP){
 
-                KeyPlacedInfo keyInfo = keyPlacedInRing.get(command.key);
-                int ring = 0;
-                //log.info("Key size {}, lookup key: {} in ring {}" ,new Object[]{keyPlacedInRing.size(), command.key,  keyInfo});
-                if(keyInfo.ring != -1){
-                    ring = keyInfo.ring;
-                } else {
-                    if(!keyInfo.replicas.isEmpty()){
-                        ring = keyInfo.replicas.get(0);
-                    }
+                ArrayList<Integer> rings = keyPlacedInRing.get(command.key);
+
+                for(int i = 0; i < rings.size(); i++){
+                    log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
+                    trigger(new LookUp(self, ringNodes[rings.get(i)], command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
+                    lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
+                    lookUpCounter++;
                 }
 
-                trigger(new LookUp(self, ringNodes[ring], command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
-                lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
-                lookUpCounter++;
 
             }
 
@@ -245,19 +273,24 @@ public class Application extends ComponentDefinition {
     private Handler<LookUpResponse> handleLookUpResponse = new Handler<LookUpResponse>() {
 
         public void handle(LookUpResponse msg){
-            Long receviedTime = System.currentTimeMillis();
+            Long receivedTime = System.currentTimeMillis();
 
-            Long external1 = msg.startInnerLatency - lookUpSendingTimes.get(msg.id);
-            Long internal = msg.endInnerLatency - msg.startInnerLatency;
-            Long external2 = receviedTime - msg.endInnerLatency;
+            if(msg.type == LookUp.LookUpTYPE.PING){
 
-            Long total = external1 + internal + external2;
+                Long external1 = msg.startInnerLatency - pingSendingTimes.get(msg.id);
+                Long internal = msg.endInnerLatency - msg.startInnerLatency;
+                Long external2 = receivedTime - msg.endInnerLatency;
 
-            if(msg.type == LookUp.LookUpTYPE.LOOKUP){
+                Long total = external1 + internal + external2;
                 ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
 
 
             } else {
+                Long external1 = msg.startInnerLatency - lookUpSendingTimes.get(msg.id);
+                Long internal = msg.endInnerLatency - msg.startInnerLatency;
+                Long external2 = receivedTime - msg.endInnerLatency;
+
+                Long total = external1 + internal + external2;
 
                 stats.LookUpResponses++;
                 if(msg.answer == LookUpResponse.LookUp.InStore || msg.answer == LookUpResponse.LookUp.InReplica) {
@@ -266,10 +299,6 @@ public class Application extends ComponentDefinition {
                     ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
                 }
 
-            }
-
-            while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
-                ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
             }
         }
 
@@ -281,24 +310,20 @@ public class Application extends ComponentDefinition {
             stats.AddResponses++;
 
             if(addSendingTimes.containsKey(msg.key)) {
-
                 SendingInfo si = addSendingTimes.get(msg.key);
+                Long time = System.currentTimeMillis();
+                Long external1 = msg.startInnerLatency - si.list.get(msg.id);
+                Long internal = msg.endInnerLatency - msg.startInnerLatency;
+                Long external2 = time - msg.endInnerLatency;
+                Long total = external1 + internal + external2;
+
+                ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
+
+
+
                 if (si.list.size() == 1 && si.list.containsKey(msg.id)) {
-                    Long time = System.currentTimeMillis();
-                    Long external1 = msg.startInnerLatency - si.list.get(msg.id);
-                    Long internal = msg.endInnerLatency - msg.startInnerLatency;
-                    Long external2 = time - msg.endInnerLatency;
-                    Long total = external1 + internal + external2;
-
                     addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total));
-                    ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
-
-                    while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
-                        ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
-                    }
                     addSendingTimes.remove(msg.key);
-
-
 
                 } else {
                     si.list.remove(msg.id);
@@ -307,20 +332,12 @@ public class Application extends ComponentDefinition {
 
             if(keyPlacedInRing.containsKey(msg.key)){
 
-                if(msg.type == 1){
-                    keyPlacedInRing.get(msg.key).ring = msg.fromRing;
-                } else {
-                    keyPlacedInRing.get(msg.key).replicas.add(msg.fromRing);
-                }
+                    keyPlacedInRing.get(msg.key).add(msg.fromRing);
 
             } else {
-                KeyPlacedInfo keyInfo = new KeyPlacedInfo();
-                if(msg.type == 1){
-                    keyInfo.ring = msg.fromRing;
-                } else {
-                    keyInfo.replicas.add(msg.fromRing);
-                }
-                keyPlacedInRing.put(msg.key, keyInfo);
+                ArrayList<Integer> list = new ArrayList<>();
+                list.add(msg.fromRing);
+                keyPlacedInRing.put(msg.key, list);
 
             }
             //log.info("Add response key {}, keyplayced {}", new Object[]{msg.key, keyPlacedInRing.size()});
@@ -397,15 +414,17 @@ public class Application extends ComponentDefinition {
         public NodeInfo selfAddress;
         public int M;
         public int nRings;
-        public ArrayList<Integer> replications;
+        public int replications;
         public NodeInfo[] ringNodes;
+        public ArrayList<LatencyContainer> latency;
 
-        public ApplicationInit(NodeInfo selfAddress, int M, int nRings, ArrayList<Integer> replications, NodeInfo[] ringNodes) {
+        public ApplicationInit(NodeInfo selfAddress, int M, int nRings, int replications, NodeInfo[] ringNodes, ArrayList<LatencyContainer> latency) {
             this.selfAddress = selfAddress;
             this.M = M;
             this.nRings = nRings;
             this.replications = replications;
             this.ringNodes = ringNodes;
+            this.latency = latency;
         }
 
     }

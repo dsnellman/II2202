@@ -37,10 +37,10 @@ public class Scenario {
     private final static int M = 14; //Number of bits in identifier
     private final static int nNode = 100; //Number of nodes in each ring
     private final static int nRings = 5; //Number of rings
-    private final static int nApps = 1000; //Number of applications
-    private final static int runTime = 1500; //In seconds
+    private final static int nApps = 10; //Number of applications
+    private final static int runTime = 1000; //In seconds
+    private static int replications = 2; //Not lower than 1
 
-    private static ArrayList<Integer> replications = new ArrayList<>();
     private static String[] allRingCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO"};
     //private static String[] allcities = new String[]{"VGNI", "SNGP", "ORGN", "IRLD"};
     private static String[] allcities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
@@ -73,17 +73,6 @@ public class Scenario {
 
         readIdsFromFile();
 
-        //Replica on next ring
-        replications.add(1);
-
-        //Random ring for replica
-        //replications.add(0);
-
-        //Replica on next best ring
-        //replications.add(-1);
-
-
-
 
     }
 
@@ -98,7 +87,7 @@ public class Scenario {
 
         //log.info("Cities:{}", new Object[]{ringcities.toString()});
 
-        LatencyLists l = new LatencyLists((int) (runTime * 1.5));
+        LatencyLists l = new LatencyLists((int) (runTime * 100));
         latencies = l.getLatencies();
 
         File files = new File("./src/main/resources/tests/");
@@ -221,7 +210,7 @@ public class Scenario {
 
 
 
-                    return new DHT.DhtInit(nodeAddress, firstNodes[ring], M, replications, nRings);
+                    return new DHT.DhtInit(nodeAddress, firstNodes[ring], M, nRings);
                 }
 
 
@@ -305,7 +294,7 @@ public class Scenario {
 
 
                 process1.start();
-                processApp.startAfterStartOf((long) ((runTime * 0.8) * 1000), process1);
+                processApp.startAfterStartOf((long) ((runTime * 0.5) * 1000), process1);
                 startResultComp.startAfterTerminationOf(runTime * 1000, process1);
                 terminateAfterTerminationOf(10000, startResultComp);
 

@@ -30,7 +30,7 @@ public class App extends ComponentDefinition {
         connect(latencyLayer.getNegative(Timer.class), timer);
         connect(latencyLayer.getNegative(Network.class), network);
 
-        Application = create(Application.class, new Application.ApplicationInit(init.app, init.m, init.nRings, init.replications, init.ringNodes));
+        Application = create(Application.class, new Application.ApplicationInit(init.app, init.m, init.nRings, init.replications, init.ringNodes, init.latency));
         connect(Application.getNegative(Timer.class), timer);
         connect(Application.getNegative(Network.class), latencyLayer.getPositive(Network.class));
 
@@ -51,11 +51,11 @@ public class App extends ComponentDefinition {
         public int nRings;
         public String city;
         public ArrayList<LatencyContainer> latency;
-        public ArrayList<Integer> replications;
+        public int replications;
         public  NodeInfo[] ringNodes;
         public ArrayList<String> allCities;
 
-        public AppInit(NodeInfo app, int m, int nRings,String city, ArrayList<String> allCities, ArrayList<LatencyContainer> latency, ArrayList<Integer> replications,  NodeInfo[] ringNodes){
+        public AppInit(NodeInfo app, int m, int nRings,String city, ArrayList<String> allCities, ArrayList<LatencyContainer> latency, int replications,  NodeInfo[] ringNodes){
             this.m = m;
             this.app = app;
             this.latency = latency;

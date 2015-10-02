@@ -811,14 +811,12 @@ public class Chord extends ComponentDefinition {
         public NodeInfo selfAddress;
         public NodeInfo firstNode;
         public int m;
-        public ArrayList<Integer> replications;
         public int nRings;
 
-        public ChordInit(NodeInfo self, NodeInfo firstNode, int m, ArrayList<Integer> replications, int nRings) {
+        public ChordInit(NodeInfo self, NodeInfo firstNode, int m, int nRings) {
             this.selfAddress = self;
             this.firstNode = firstNode;
             this.m = m;
-            this.replications = replications;
             this.nRings = nRings;
         }
 
