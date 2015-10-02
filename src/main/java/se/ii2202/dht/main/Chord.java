@@ -53,7 +53,7 @@ public class Chord extends ComponentDefinition {
     private final int M;
     private final int nRings;
 
-    private final int maxProcessMsgTime = 4;
+    private final int maxProcessMsgTime = 10;
 
     public Chord(ChordInit init) {
 
@@ -221,10 +221,15 @@ public class Chord extends ComponentDefinition {
 
             if(msg.type == TYPE.ADD || msg.type == TYPE.ADDREPLICA || msg.type == TYPE.LOOKUP) {
 
-                //SIMULATING INTERNAL LATENCY
-                int value = rand.nextInt(maxProcessMsgTime);
-                processingAppMsgClosest.put(processedMsgClosestCounter, value);
-                int sleep = 0;
+                int value = rand.nextInt(maxProcessMsgTime) + 1;
+                int sleep = value;
+                if(msg.lookupType == LookUp.LookUpTYPE.LOOKUP) {
+                    //SIMULATING INTERNAL LATENCY
+
+                    processingAppMsgClosest.put(processedMsgClosestCounter, value);
+                    sleep = 0;
+                }
+
                 Iterator it = processingAppMsgClosest.entrySet().iterator();
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry) it.next();
@@ -277,10 +282,11 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(InnerLatencyTimerClosest timer) {
-
-            processingAppMsgClosest.remove(timer.msgId);
-
             ClosestFingerResponse msg = timer.closestFingerResponse;
+            if(msg.lookupType == LookUp.LookUpTYPE.LOOKUP)
+                processingAppMsgClosest.remove(timer.msgId);
+
+
 
             NodeInfo nPrime = msg.foundedAddress;
             //log.info("{} reveive closestfinger response with returnaddress: {}", new Object[]{self, msg.returnAddress});
@@ -532,13 +538,16 @@ public class Chord extends ComponentDefinition {
             if(msg.startInnerLatency == 0L)
                 msg.startInnerLatency = System.currentTimeMillis();
 
-            int value = rand.nextInt(maxProcessMsgTime) + 1;
+            int value = rand.nextInt(maxProcessMsgTime) +1;
             int sleep = value;
+
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
+
                 //SIMULATING INTERNAL LATENCY
                 sleep = 0;
                 processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
             }
+
 
             Iterator it = processingAppMsgLookUp.entrySet().iterator();
             while (it.hasNext()) {
@@ -561,9 +570,9 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(InnerLatencyTimerLookUp timer) {
 
-            processingAppMsgLookUp.remove(timer.msgId);
-
             LookUp msg = timer.lookup;
+            if(msg.type == LookUp.LookUpTYPE.LOOKUP)
+                processingAppMsgLookUp.remove(timer.msgId);
 
             //log.info("{}: Received lookup msg for key {} with counter : {} - Time: {}, returnaddress: {}", new Object[]{self,msg.key, msg.counter, System.nanoTime(), msg.returnAddress});
 
@@ -603,7 +612,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime) + 1;
+            int value = rand.nextInt(maxProcessMsgTime) +1;
             int sleep = value;
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
                 //SIMULATING INTERNAL LATENCY
@@ -628,9 +637,11 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(InnerLatencyTimerRingLookUp timer) {
 
-            processingAppMsgRingLookUp.remove(timer.msgId);
-
             RingLookUp msg = timer.lookup;
+            if(msg.type == LookUp.LookUpTYPE.LOOKUP)
+                processingAppMsgRingLookUp.remove(timer.msgId);
+
+
 
             //log.info("{}: Received ringlookup msg for key {} with counter : {}, time: {}, returnaddress; {}", new Object[]{self,msg.key, msg.counter, System.nanoTime(), msg.returnAddress});
             if (between(msg.key, self.pred.id, self.id, false, true)) {

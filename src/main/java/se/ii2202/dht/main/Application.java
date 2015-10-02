@@ -71,9 +71,9 @@ public class Application extends ComponentDefinition {
     private int n = 1;
 
 
-    private boolean randomChoose = false;
-    private boolean bestChoose = true;
-    private boolean worstChoose = false;
+    private boolean randomChoose = false;  //Not tested yet....
+    private boolean bestChoose = false;
+    private boolean worstChoose = true;
 
 
     //=========================================================
@@ -137,7 +137,7 @@ public class Application extends ComponentDefinition {
             }
 
 
-            commands.add(new Command(Command.TYPE.SLEEP, 100000));
+            commands.add(new Command(Command.TYPE.SLEEP, 200000));
 
             for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
                 int index = ((NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
@@ -176,16 +176,13 @@ public class Application extends ComponentDefinition {
 
             for (int i = 0; i < nRings; i++) {
                 int totalRing = 0;
-                int counter = 0;
-                for (RingController controller : ringController.get(i)) {
-                    totalRing += controller.totalTime;
-                    counter++;
-                    //log.info("{} Ring: {}, total time: {}", new Object[]{self, i, controller.totalTime});
-                    if (counter == n)
-                        break;
+                ArrayList<RingController> ring = ringController.get(i);
+                for(int j = 0; j < n; j++){
+                    totalRing += ring.get(j).totalTime;
                 }
-                ringAvg.add(new RingInfo(i,totalRing / counter));
-                //log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, counter, i, totalRing / counter});
+
+                ringAvg.add(new RingInfo(i, totalRing / n));
+                //log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, n, i, totalRing / n});
             }
 
         }
@@ -194,7 +191,7 @@ public class Application extends ComponentDefinition {
 
 
         Collections.sort(ringAvg, new CompareRingInfo());
-        log.info("return ring: {}",ringAvg.toString());
+        //log.info("return ring: {}",ringAvg.toString());
         return ringAvg;
     }
 
@@ -237,7 +234,7 @@ public class Application extends ComponentDefinition {
                     for (int i = 0; i < replications; i++) {
                         //log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(rings.size() - i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        trigger(new Add(self, ringNodes[rings.get(rings.size() - i).ring], TYPE.ADD, item, storeCounter, self), network);
+                        trigger(new Add(self, ringNodes[rings.get((rings.size() - i) -1).ring], TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
                 } else if(randomChoose){
@@ -267,10 +264,10 @@ public class Application extends ComponentDefinition {
 
                 ArrayList<Integer> rings = keyPlacedInRing.get(command.key);
 
-                log.info("Look up for key: {}, in rings: {}", command.key, rings.toString());
+                //log.info("Look up for key: {}, in rings: {}", command.key, rings.toString());
 
                 for(int i = 0; i < rings.size(); i++){
-                    log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
+                    //log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
                     trigger(new LookUp(self, ringNodes[rings.get(i)], command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
                     lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
                     lookUpCounter++;
@@ -296,7 +293,7 @@ public class Application extends ComponentDefinition {
 
                 Long total = external1 + internal + external2;
                 ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
-
+                //log.info("Pong from: {} ex: {} {} inttime: {} tot {}", new Object[]{msg.fromRing, external1, external2, internal, total});
 
             } else {
                 Long external1 = msg.startInnerLatency - lookUpSendingTimes.get(msg.id);
@@ -321,7 +318,6 @@ public class Application extends ComponentDefinition {
 
         public void handle(AddResponse msg){
             stats.AddResponses++;
-            log.info("received addresponse");
             if(addSendingTimes.containsKey(msg.key)) {
                 SendingInfo si = addSendingTimes.get(msg.key);
                 Long time = System.currentTimeMillis();
@@ -351,10 +347,9 @@ public class Application extends ComponentDefinition {
                 ArrayList<Integer> list = new ArrayList<>();
                 list.add(msg.fromRing);
                 keyPlacedInRing.put(msg.key, list);
-
             }
 
-            if(stats.AddResponses == NUMBER_OF_ADDS * replications)
+            if(stats.AddResponses == NUMBER_OF_ADDS * replications && self.id == 0)
                 log.info("Got responses from all sent addmessages");
         }
 
