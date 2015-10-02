@@ -6,6 +6,7 @@ import se.ii2202.dht.appmsg.*;
 import se.ii2202.dht.object.*;
 import se.ii2202.dht.timer.CommandTimer;
 import se.ii2202.dht.object.Stats;
+import se.ii2202.dht.timer.PeriodicClockTimer;
 import se.ii2202.dht.timer.PeriodicPingTimer;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
@@ -82,6 +83,7 @@ public class Application extends ComponentDefinition {
         subscribe(handlePong, network);
 
         subscribe(handlePeriodicPingTimer, timer);
+        subscribe(handlePeriodicClockTimer, timer);
 
     }
 
@@ -92,6 +94,11 @@ public class Application extends ComponentDefinition {
             //log.info("Starts app with id: {} ", new Object[]{self.id});
 
             schedulePing();
+
+            if(self.id == 0){
+                schedulerClockTimer();
+            }
+
 
             InputStream stream = Application.class.getResourceAsStream("/ItemKeys.txt");
             try (BufferedReader br = new BufferedReader(new InputStreamReader(stream)))
@@ -362,6 +369,21 @@ public class Application extends ComponentDefinition {
 
         }
     };
+    private Handler<PeriodicClockTimer> handlePeriodicClockTimer = new Handler<PeriodicClockTimer>() {
+
+        public void handle(PeriodicClockTimer event) {
+
+            log.info("Clock update: {}", System.currentTimeMillis());
+
+        }
+    };
+
+    private void schedulerClockTimer(){
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(10000, 10000);
+        PeriodicClockTimer sc = new PeriodicClockTimer(spt);
+        spt.setTimeoutEvent(sc);
+        trigger(spt, timer);
+    }
 
     private void schedulePing() {
         SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(PERIODIC_PING_TIMEOUT, PERIODIC_PING_TIMEOUT);

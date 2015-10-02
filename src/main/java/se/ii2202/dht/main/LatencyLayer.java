@@ -155,8 +155,8 @@ public class LatencyLayer extends ComponentDefinition {
                     index = latency.indexOf(new LatencyContainer(allCities.get(i), city));
                     currentIncomingLatencies[i] = latency.get(index).latencies.get(updateCounter);
                 } else{
-                    currentOutgoingLatencies[i] = 0;
-                    currentIncomingLatencies[i] = 0;
+                    currentOutgoingLatencies[i] = 5;
+                    currentIncomingLatencies[i] = 5;
                 }
 
 
