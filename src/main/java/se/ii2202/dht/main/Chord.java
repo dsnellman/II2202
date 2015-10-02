@@ -103,7 +103,7 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(Start event) {
 
-            log.info("{} | - Starting chord! first: {}", new Object[]{self, firstNode});
+            //log.info("{} | - Starting chord! first: {}", new Object[]{self, firstNode});
 
             scheduleStabilizer();
 

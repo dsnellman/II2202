@@ -60,7 +60,7 @@ public class LatencyLayer extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{selfAddress.id, city, allCities.toString()});
+            //log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{selfAddress.id, city, allCities.toString()});
             SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(0, 1000);
             PeriodicLatencyUpdateTimer sc = new PeriodicLatencyUpdateTimer(spt);
             spt.setTimeoutEvent(sc);

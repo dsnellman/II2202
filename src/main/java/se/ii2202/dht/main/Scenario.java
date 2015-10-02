@@ -38,10 +38,10 @@ public class Scenario {
     // SIMULATION VARIABLES
 
     private final static int M = 14; //Number of bits in identifier
-    private final static int nNode = 100; //Number of nodes in each ring
+    private final static int nNode = 1000; //Number of nodes in each ring
     private final static int nRings = 5; //Number of rings
     private final static int nApps = 500; //Number of applications
-    private final static int runTime = 1200; //In seconds
+    private final static int runTime = 1500; //In seconds
 
     private static ArrayList<Integer> replications = new ArrayList<>();
     private static String[] allRingCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO"};
