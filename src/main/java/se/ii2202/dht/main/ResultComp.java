@@ -85,8 +85,9 @@ public class ResultComp extends ComponentDefinition {
     public void printresult() throws IOException {
 
 
-        File file = new File("./src/main/resources/tests/" + filename + ".txt");
-        FileWriter writer = new FileWriter(file, true);
+        File storeFile = new File("./src/main/resources/tests/" + filename + "-adds.txt");
+        File lookupFile = new File("./src/main/resources/tests/" + filename + "-lookup.txt");
+        FileWriter writer = new FileWriter(storeFile, true);
 
         writer.write("STORES:\r\n");
         writer.write("Appid: \tRing: \tMessages \tKey \tExternal1 \tExternal2 \tInternal \tTotal\r\n");
@@ -94,14 +95,15 @@ public class ResultComp extends ComponentDefinition {
             writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t" + time.key + "\t" + time.external1 + "\t" + time.external2 + "\t" + time.internal + "\t" + time.total);
             writer.write("\r\n");   // write new line
         }
-
+        writer.close();
+        writer = new FileWriter(lookupFile, true);
         writer.write("\r\n\r\nLOOKUPS:\r\n");
         writer.write("Appid: \tRing: \tMessages \tKey \tExternal1 \tExternal2 \tInternal \tTotal\r\n");
         for(TestResult time : lookupTimes){
             writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t" + time.key + "\t" + time.external1 + "\t" + time.external2 + "\t" + time.internal + "\t" + time.total);
             writer.write("\r\n");   // write new line
         }
-        writer.close();
+
     }
 
 
