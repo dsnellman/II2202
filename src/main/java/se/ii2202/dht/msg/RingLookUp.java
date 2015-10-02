@@ -1,5 +1,6 @@
 package se.ii2202.dht.msg;
 
+import se.ii2202.dht.appmsg.LookUp;
 import se.ii2202.dht.object.NodeInfo;
 
 public class RingLookUp extends RingMessage<Object> {
@@ -10,8 +11,9 @@ public class RingLookUp extends RingMessage<Object> {
     public int id;
     public int counter;
     public Long startInnerLatency;
+    public LookUp.LookUpTYPE type;
 
-    public RingLookUp(NodeInfo src, NodeInfo dst, NodeInfo returnAddress, int key, NodeInfo foundedAddress, int id, int counter, Long startInnerLatency){
+    public RingLookUp(NodeInfo src, NodeInfo dst, NodeInfo returnAddress, int key, NodeInfo foundedAddress, int id, int counter, LookUp.LookUpTYPE type, Long startInnerLatency){
         super(src, dst);
         this.key = key;
         this.returnAddress = returnAddress;
@@ -19,5 +21,6 @@ public class RingLookUp extends RingMessage<Object> {
         this.id = id;
         this.counter = counter;
         this.startInnerLatency = startInnerLatency;
+        this.type = type;
     }
 }

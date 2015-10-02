@@ -130,7 +130,7 @@ public class Chord extends ComponentDefinition {
         public void handle(Join msg) {
             //log.info("{} | Received join msg from {}", new Object[]{self, msg.getSource()});
 
-            NodeInfo s = find_successor(msg.address.id, msg.address, TYPE.JOIN, 0, null, 0, 0, 0L);
+            NodeInfo s = find_successor(msg.address.id, msg.address, TYPE.JOIN, 0, null, 0, 0, 0L, null);
 
 
             if (s != null) {
@@ -160,7 +160,7 @@ public class Chord extends ComponentDefinition {
         public void handle(FindSuccessor msg) {
             //log.info("{} | Received FindSuccessor msg from {}", new Object[]{self, msg.getSource()});
             //log.info("{} (Succ: {}, Pred: {}) => Find successor for id: {} type {}", new Object[]{self, self.succ.id, self.pred.id, msg.id, msg.type});
-            NodeInfo succ = find_successor(msg.id, msg.address, msg.type, msg.finger, null, 0, 0, 0L);
+            NodeInfo succ = find_successor(msg.id, msg.address, msg.type, msg.finger, null, 0, 0, 0L, null);
             //log.info("{} (Succ: {}, Pred: {}) => Found successor directly {}", new Object[]{self, self.succ.id, self.pred.id, succ});
             if(succ != null)
                 trigger(new FindSuccessorResponse(self, msg.address, msg.type, succ, msg.finger), network);
@@ -210,7 +210,7 @@ public class Chord extends ComponentDefinition {
             //log.info("{} | Received ClosestFinger msg from {}", new Object[]{self, msg.getSource()});
 
             NodeInfo nPrime = closest_finger(msg.id);
-            trigger(new ClosestFingerResponse(self, msg.sender, msg.returnAddress, msg.type, msg.id, nPrime, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.startInnerLactency), network);
+            trigger(new ClosestFingerResponse(self, msg.sender, msg.returnAddress, msg.type, msg.id, nPrime, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLactency), network);
         }
 
     };
@@ -254,7 +254,7 @@ public class Chord extends ComponentDefinition {
                     //nPrime = closest_finger(msg.id);
                     //if(msg.lookupID != 0)
                     //log.info("{} => sending closest, counter {} nprime {} key {}", new Object[]{self, msg.lookUpCounter, nPrime, msg.id});
-                    trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.startInnerLatency), network);
+                    trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
                     return;
                 }
 
@@ -264,7 +264,7 @@ public class Chord extends ComponentDefinition {
                     trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
                 } else if (msg.type == TYPE.LOOKUP) {
                     msg.msgCounter++;
-                    trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.startInnerLatency), network);
+                    trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
                 } else if (msg.type == TYPE.OTHERS) {
                     trigger(new UpdateFingerTable(self, nPrime, self, msg.finger), network);
                 } else {
@@ -293,7 +293,7 @@ public class Chord extends ComponentDefinition {
                 //nPrime = closest_finger(msg.id);
                 //if(msg.lookupID != 0)
                 //log.info("{} => sending closest, counter {} nprime {} key {}", new Object[]{self, msg.lookUpCounter, nPrime, msg.id});
-                trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.startInnerLatency), network);
+                trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
                 return;
             }
 
@@ -301,7 +301,7 @@ public class Chord extends ComponentDefinition {
                 trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
             } else if (msg.type == TYPE.LOOKUP) {
                 msg.msgCounter++;
-                trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.startInnerLatency), network);
+                trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
             }
 
         }
@@ -355,7 +355,7 @@ public class Chord extends ComponentDefinition {
                 //FIX_FINGERS
                 int index = rand.nextInt(M) + 1;
                 //log.info("{} Fixing finger ({}).start: {}", new Object[]{self, index, fingers.get(index).start});
-                NodeInfo succ = find_successor(fingers.get(index).start, self, TYPE.FIX_FINGER, index, null, 0,0, 0L);
+                NodeInfo succ = find_successor(fingers.get(index).start, self, TYPE.FIX_FINGER, index, null, 0,0,0L, null);
                 if(succ != null)
                     fingers.get(index).node = succ;
 
@@ -440,7 +440,7 @@ public class Chord extends ComponentDefinition {
                 }
             } else {
                 msg.msgCounter++;
-                NodeInfo s = find_successor(msg.item.key, msg.returnAddress, msg.type, 0, msg.item, msg.id,msg.msgCounter, msg.startInnerLatency);
+                NodeInfo s = find_successor(msg.item.key, msg.returnAddress, msg.type, 0, msg.item, msg.id,msg.msgCounter, msg.startInnerLatency, null);
                 if (s != null) {
                     trigger(new RingAdd(self, s, msg.type, msg.item, msg.id, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
                 }
@@ -515,7 +515,7 @@ public class Chord extends ComponentDefinition {
                 }
             } else {
                 msg.msgCounter++;
-                NodeInfo s = find_successor(msg.item.key, msg.returnAddress, msg.type, 0, msg.item, msg.id, msg.msgCounter, msg.startInnerLatency);
+                NodeInfo s = find_successor(msg.item.key, msg.returnAddress, msg.type, 0, msg.item, msg.id, msg.msgCounter, msg.startInnerLatency, null);
                 if (s != null) {
                     trigger(new RingAdd(self, s, msg.type, msg.item, msg.id, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
                 }
@@ -534,17 +534,20 @@ public class Chord extends ComponentDefinition {
             if(msg.startInnerLatency == 0L)
                 msg.startInnerLatency = System.currentTimeMillis();
 
-            //SIMULATING INTERNAL LATENCY
             int value = rand.nextInt(maxProcessMsgTime) + 1;
-            processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
-            int sleep = 0;
+            int sleep = value;
+            if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
+                //SIMULATING INTERNAL LATENCY
+                sleep = 0;
+                processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
+            }
+
             Iterator it = processingAppMsgLookUp.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pair = (Map.Entry) it.next();
                 sleep += (Integer) pair.getValue();
             }
 
-            //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgLookUp.size(), processedMsgLookUpCounter});
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);
             InnerLatencyTimerLookUp sc = new InnerLatencyTimerLookUp(spt, processedMsgLookUpCounter, msg);
@@ -573,22 +576,22 @@ public class Chord extends ComponentDefinition {
 
                 if (storage.contains(new Item(msg.key))) {
 
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InStore, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InStore, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
 
                 } else if (replicaStorage.contains(new Item(msg.key))){
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InReplica, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InReplica, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
 
                 } else {
 
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.NotFound, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.NotFound, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
                 }
 
             } else {
                 msg.counter++;
-                NodeInfo s = find_successor(msg.key, msg.returnAddress, TYPE.LOOKUP, 0, null, msg.id, msg.counter, msg.startInnerLatency);
+                NodeInfo s = find_successor(msg.key, msg.returnAddress, TYPE.LOOKUP, 0, null, msg.id, msg.counter, msg.startInnerLatency, msg.type);
                 if (s != null) {
                     //log.info("{}: sending lookup msg to ring for key {} with counter : {}, time: {}", new Object[]{self,msg.key, msg.counter, System.nanoTime()});
-                    trigger(new RingLookUp(self, s, msg.returnAddress, msg.key, s, msg.id, msg.counter, msg.startInnerLatency), network);
+                    trigger(new RingLookUp(self, s, msg.returnAddress, msg.key, s, msg.id, msg.counter, msg.type, msg.startInnerLatency), network);
                 }
             }
 
@@ -603,13 +606,13 @@ public class Chord extends ComponentDefinition {
 
             //SIMULATING INTERNAL LATENCY
             int value = rand.nextInt(maxProcessMsgTime) + 1;
-            processingAppMsgRingLookUp.put(processedMsgRingLookUpCounter, value);
-            int sleep = 0;
-            Iterator it = processingAppMsgRingLookUp.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                sleep += (Integer) pair.getValue();
+            int sleep = value;
+            if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
+                //SIMULATING INTERNAL LATENCY
+                sleep = 0;
+                processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
             }
+
 
             //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingLookUp.size(), processedMsgRingLookUpCounter});
 
@@ -637,21 +640,21 @@ public class Chord extends ComponentDefinition {
                 Long endInnerLatency = System.currentTimeMillis();
                 if (storage.contains(new Item(msg.key))) {
 
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InStore, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InStore, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
 
                 } else if (replicaStorage.contains(new Item(msg.key))){
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InReplica, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.InReplica, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
 
                 } else {
 
-                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.NotFound, self, msg.id, msg.counter, msg.startInnerLatency, endInnerLatency), network);
+                    trigger(new LookUpResponse(self, msg.returnAddress, msg.key, LookUpResponse.LookUp.NotFound, self, msg.id, msg.counter, msg.type, msg.startInnerLatency, endInnerLatency), network);
                 }
             } else {
                 msg.counter++;
-                NodeInfo s = find_successor(msg.key, msg.returnAddress, TYPE.LOOKUP, 0, null, msg.id, msg.counter, msg.startInnerLatency);
+                NodeInfo s = find_successor(msg.key, msg.returnAddress, TYPE.LOOKUP, 0, null, msg.id, msg.counter, msg.startInnerLatency, msg.type);
                 if (s != null) {
                     //log.info("{}: Sending ringlookup msg for key {} with counter : {}, Time: {}", new Object[]{self,msg.key, msg.counter, System.nanoTime()});
-                    trigger(new RingLookUp(self, s, msg.returnAddress, msg.key, s, msg.id, msg.counter, msg.startInnerLatency), network);
+                    trigger(new RingLookUp(self, s, msg.returnAddress, msg.key, s, msg.id, msg.counter, msg.type, msg.startInnerLatency), network);
                 }
             }
 
@@ -699,7 +702,7 @@ public class Chord extends ComponentDefinition {
                 x = (M - 1) + x;
             }
 
-            NodeInfo p = find_predecessor(x, self, TYPE.OTHERS, i, null,0, 0, 0L);
+            NodeInfo p = find_predecessor(x, self, TYPE.OTHERS, i, null,0, 0, null, 0L);
             if (p != null) {
                 trigger(new UpdateFingerTable(self, p, self, i), network);
             }
@@ -708,9 +711,9 @@ public class Chord extends ComponentDefinition {
 
     }
 
-    public NodeInfo find_successor(int id, NodeInfo returnAddress, TYPE type, int index, Item item, int lookupID, int msgCounter, Long startInnerLatency) {
+    public NodeInfo find_successor(int id, NodeInfo returnAddress, TYPE type, int index, Item item, int lookupID, int msgCounter, Long startInnerLatency, LookUp.LookUpTYPE lookupType) {
         //log.info("{} find successor for id: {}", new Object[]{self, id});
-        NodeInfo nPrime = find_predecessor(id, returnAddress, type, index, item, lookupID, msgCounter, startInnerLatency);
+        NodeInfo nPrime = find_predecessor(id, returnAddress, type, index, item, lookupID, msgCounter, lookupType, startInnerLatency);
         if (nPrime != null) {
             return nPrime.succ;
         }
@@ -718,7 +721,7 @@ public class Chord extends ComponentDefinition {
         return null;
     }
 
-    public NodeInfo find_predecessor(int id, NodeInfo returnAddress, TYPE type, int i, Item item, int lookupID, int msgCounter, Long startInnerLatency) {
+    public NodeInfo find_predecessor(int id, NodeInfo returnAddress, TYPE type, int i, Item item, int lookupID, int msgCounter, LookUp.LookUpTYPE lookupType, Long startInnerLatency) {
 
         NodeInfo nPrime = self;
 
@@ -726,7 +729,7 @@ public class Chord extends ComponentDefinition {
             nPrime = closest_finger(id);
             //if(lookupID > 0)
             //log.info("{} sending cloest finger to node {} with key {}", new Object[]{self, nPrime, id});
-            trigger(new ClosestFinger(self, nPrime, returnAddress, type, id, null, i, item, lookupID, msgCounter, startInnerLatency), network);
+            trigger(new ClosestFinger(self, nPrime, returnAddress, type, id, null, i, item, lookupID, msgCounter, lookupType, startInnerLatency), network);
             return null;
         }
         return nPrime;

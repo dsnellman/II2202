@@ -80,7 +80,6 @@ public class Application extends ComponentDefinition {
         subscribe(handleLookUpResponse, network);
         subscribe(handleAddResponse, network);
         subscribe(handleResultRequest, network);
-        subscribe(handlePong, network);
 
         subscribe(handlePeriodicPingTimer, timer);
         subscribe(handlePeriodicClockTimer, timer);
@@ -172,7 +171,6 @@ public class Application extends ComponentDefinition {
 
             Command command = commands.remove(0);
 
-            //log.info("{} | App runing command: {}, key {}, value {] with nodering: {}", new Object[]{self, command.type, command.key, command.value, Arrays.toString(ringNodes)});
 
             if(command.type == Command.TYPE.SLEEP){
                 ScheduleTimeout spt = new ScheduleTimeout(command.value);
@@ -234,7 +232,7 @@ public class Application extends ComponentDefinition {
                     }
                 }
 
-                trigger(new LookUp(self, ringNodes[ring], command.key, self, lookUpCounter), network);
+                trigger(new LookUp(self, ringNodes[ring], command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
                 lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
                 lookUpCounter++;
 
@@ -248,26 +246,31 @@ public class Application extends ComponentDefinition {
 
         public void handle(LookUpResponse msg){
             Long receviedTime = System.currentTimeMillis();
-            stats.LookUpResponses++;
 
-            if(msg.answer == LookUpResponse.LookUp.InStore || msg.answer == LookUpResponse.LookUp.InReplica) {
+            Long external1 = msg.startInnerLatency - lookUpSendingTimes.get(msg.id);
+            Long internal = msg.endInnerLatency - msg.startInnerLatency;
+            Long external2 = receviedTime - msg.endInnerLatency;
 
-                Long external1 = msg.startInnerLatency - lookUpSendingTimes.get(msg.id);
-                Long internal = msg.endInnerLatency - msg.startInnerLatency;
-                Long external2 = receviedTime - msg.endInnerLatency;
+            Long total = external1 + internal + external2;
 
-                Long total = external1 + internal + external2;
-
-                //log.info("{} Revecied lookupresponse from {}, found: {}, external {} + {}, internal {}, total {} = {}", new Object[]{self, msg.address, msg.answer, external1, external2, internal, total, total2});
-                lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total));
+            if(msg.type == LookUp.LookUpTYPE.LOOKUP){
                 ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
 
 
-                while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
-                    ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
+            } else {
+
+                stats.LookUpResponses++;
+                if(msg.answer == LookUpResponse.LookUp.InStore || msg.answer == LookUpResponse.LookUp.InReplica) {
+
+                    lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total));
+                    ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
                 }
+
             }
 
+            while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
+                ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
+            }
         }
 
     };
@@ -326,27 +329,6 @@ public class Application extends ComponentDefinition {
 
     };
 
-    private Handler<Pong> handlePong = new Handler<Pong>() {
-
-        public void handle(Pong msg) {
-            long receivdedTime = System.currentTimeMillis();
-
-            long external1 = msg.startInnerLatencyTime - pingSendingTimes.get(msg.id);
-            long external2 = receivdedTime - msg.endInnerLatencyTime;
-            long internal = msg.endInnerLatencyTime - msg.startInnerLatencyTime;
-            long total = external1 + external2 + internal;
-            long testTotal = receivdedTime - pingSendingTimes.get(msg.id);
-
-            ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
-
-
-            while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
-                ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
-            }
-
-
-        }
-    };
 
     private Handler<PeriodicPingTimer> handlePeriodicPingTimer = new Handler<PeriodicPingTimer>() {
 
@@ -355,7 +337,10 @@ public class Application extends ComponentDefinition {
             for(int i = 0; i < ringNodes.length; i++){
                 if(ringNodes[i] != null){
                     pingSendingTimes.put(pingCounter, System.currentTimeMillis());
-                    trigger(new Ping(self, ringNodes[i],pingCounter), network);
+
+                    int index = ((NUMBER_OF_LOOKUPS * self.id) + 0) % 10000;
+                    trigger(new LookUp(self, ringNodes[i], itemsKey.get(index), self, pingCounter, LookUp.LookUpTYPE.PING), network);
+                    //trigger(new Ping(self, ringNodes[i],pingCounter), network);
                     pingCounter++;
 
                 }

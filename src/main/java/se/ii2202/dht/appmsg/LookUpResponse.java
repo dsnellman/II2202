@@ -15,8 +15,9 @@ public class LookUpResponse extends AppMessage<Object> {
     public int counter;
     public Long startInnerLatency;
     public Long endInnerLatency;
+    public se.ii2202.dht.appmsg.LookUp.LookUpTYPE type;
 
-    public LookUpResponse(NodeInfo src, NodeInfo dst, int key,  LookUp answer, NodeInfo address, int id, int counter, Long startInnerLatency, Long endInnerLatency) {
+    public LookUpResponse(NodeInfo src, NodeInfo dst, int key,  LookUp answer, NodeInfo address, int id, int counter, se.ii2202.dht.appmsg.LookUp.LookUpTYPE type, Long startInnerLatency, Long endInnerLatency) {
         super(src, dst);
         this.answer = answer;
         this.key = key;
@@ -25,6 +26,7 @@ public class LookUpResponse extends AppMessage<Object> {
         this.counter = counter;
         this.startInnerLatency = startInnerLatency;
         this.endInnerLatency = endInnerLatency;
+        this.type = type;
     }
 
 }
