@@ -14,10 +14,7 @@ import se.sics.p2ptoolbox.simulator.dsl.distribution.ConstantDistribution;
 import se.sics.p2ptoolbox.simulator.dsl.distribution.extra.GenIntSequentialDistribution;
 import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -48,7 +45,7 @@ public class Scenario {
     private static String[] allcities = new String[]{"VGNI", "SNGP", "ORGN", "IRLD"};
     //private static String[] allcities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
 
-    private static String filename = "test1";
+    private static String filename;
 
     // ********************
 
@@ -88,6 +85,32 @@ public class Scenario {
 
 
 
+    }
+
+    private static void startUp(){
+
+        while(ringcities.size() < nRings){
+            int index = rand.nextInt(allRingCities.length);
+            if(!ringcities.contains(allRingCities[index])){
+                ringcities.add(allRingCities[index]);
+            }
+        }
+
+        //log.info("Cities:{}", new Object[]{ringcities.toString()});
+
+        LatencyLists l = new LatencyLists((int) (runTime * 1.5));
+        latencies = l.getLatencies();
+
+        File files = new File("./src/main/resources/tests/");
+        int highest = 0;
+        for(File f : files.listFiles()){
+            String number = f.getName().substring(4, f.getName().length() - 4);
+            int x = Integer.parseInt(number);
+            if(x > highest)
+                highest = x;
+        }
+        highest++;
+        filename = "test" + highest;
     }
 
     private static void readIdsFromFile(){
@@ -179,17 +202,7 @@ public class Scenario {
 
                     if(latencies == null){
 
-                        while(ringcities.size() < nRings){
-                            int index = rand.nextInt(allRingCities.length);
-                            if(!ringcities.contains(allRingCities[index])){
-                                ringcities.add(allRingCities[index]);
-                            }
-                        }
-
-                        log.info("Cities:{}", new Object[]{ringcities.toString()});
-
-                        LatencyLists l = new LatencyLists((int) (runTime * 1.5));
-                        latencies = l.getLatencies();
+                       startUp();
 
                     }
 
