@@ -89,16 +89,16 @@ public class ResultComp extends ComponentDefinition {
         FileWriter writer = new FileWriter(file, true);
 
         writer.write("STORES:\r\n");
-        writer.write("Appid: \tRing: \tMessages \tKey \t\tExternal1 \tExternal2 \tInternal \tTotal\r\n");
+        writer.write("Appid: \tRing: \tMessages \tKey \tExternal1 \tExternal2 \tInternal \tTotal\r\n");
         for(TestResult time : storeTimes){
-            writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t\t" + time.key + "\t \t" + time.external1 + "\t\t" + time.external2 + "\t\t" + time.internal + "\t\t" + time.total);
+            writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t" + time.key + "\t" + time.external1 + "\t" + time.external2 + "\t" + time.internal + "\t" + time.total);
             writer.write("\r\n");   // write new line
         }
 
         writer.write("\r\n\r\nLOOKUPS:\r\n");
-        writer.write("Appid: \tRing: \tMessages \tKey \tExternal1 \t\tExternal2 \tInternal \tTotal\r\n");
+        writer.write("Appid: \tRing: \tMessages \tKey \tExternal1 \tExternal2 \tInternal \tTotal\r\n");
         for(TestResult time : lookupTimes){
-            writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t\t" + time.key + "\t\t" + time.external1 + "\t\t" + time.external2 + "\t\t" + time.internal + "\t\t" + time.total);
+            writer.write(time.appid + "\t" + time.ring + "\t" + time.messages + "\t" + time.key + "\t" + time.external1 + "\t" + time.external2 + "\t" + time.internal + "\t" + time.total);
             writer.write("\r\n");   // write new line
         }
         writer.close();
