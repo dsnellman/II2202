@@ -465,7 +465,7 @@ public class Chord extends ComponentDefinition {
                 Map.Entry pair = (Map.Entry) it.next();
                 sleep += (Integer) pair.getValue();
             }
-
+            log.info("Revecived add, right now {} in line and a {} ms delay", processingAppMsgAdd.size(), sleep);
             //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingAdd.size(), processedMsgRingAddCounter});
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);

@@ -57,7 +57,7 @@ public class Application extends ComponentDefinition {
     private Stats stats = new Stats();
 
     private Random rand = new Random();
-    private int NUMBER_OF_ADDS = 10;
+    private int NUMBER_OF_ADDS = 100;
     private int NUMBER_OF_LOOKUPS = 10;
     private int PERIODIC_PING_TIMEOUT = 2000;
 
