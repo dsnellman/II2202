@@ -53,8 +53,7 @@ public class Chord extends ComponentDefinition {
     private final int M;
     private final int nRings;
 
-    private final int maxProcessMsgTime = 7;
-    private final int minProcessMsgTime = 3;
+    private final int maxProcessMsgTime = 4;
 
     public Chord(ChordInit init) {
 
@@ -225,7 +224,7 @@ public class Chord extends ComponentDefinition {
             if(msg.type == TYPE.ADD || msg.type == TYPE.ADDREPLICA || msg.type == TYPE.LOOKUP) {
 
                 //SIMULATING INTERNAL LATENCY
-                int value = rand.nextInt(maxProcessMsgTime + minProcessMsgTime) + minProcessMsgTime;
+                int value = rand.nextInt(maxProcessMsgTime);
                 processingAppMsgClosest.put(processedMsgClosestCounter, value);
                 int sleep = 0;
                 Iterator it = processingAppMsgClosest.entrySet().iterator();
@@ -400,7 +399,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime + minProcessMsgTime) + minProcessMsgTime;
+            int value = rand.nextInt(maxProcessMsgTime);
             processingAppMsgAdd.put(processedMsgAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgAdd.entrySet().iterator();
@@ -458,7 +457,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime + minProcessMsgTime) + minProcessMsgTime;
+            int value = rand.nextInt(maxProcessMsgTime);
             processingAppMsgRingAdd.put(processedMsgRingAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgAdd.entrySet().iterator();
@@ -538,7 +537,7 @@ public class Chord extends ComponentDefinition {
                 msg.startInnerLatency = System.currentTimeMillis();
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime + minProcessMsgTime) + minProcessMsgTime;
+            int value = rand.nextInt(maxProcessMsgTime);
             processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgLookUp.entrySet().iterator();
@@ -605,7 +604,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime + minProcessMsgTime) + minProcessMsgTime;
+            int value = rand.nextInt(maxProcessMsgTime);
             processingAppMsgRingLookUp.put(processedMsgRingLookUpCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgRingLookUp.entrySet().iterator();

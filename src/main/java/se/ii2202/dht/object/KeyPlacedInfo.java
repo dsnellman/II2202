@@ -10,4 +10,8 @@ public class KeyPlacedInfo {
     public KeyPlacedInfo(){
         replicas = new ArrayList<>();
     }
+
+    public String toString(){
+        return "ring: " + ring + " replicas: " + replicas.toString();
+    }
 }

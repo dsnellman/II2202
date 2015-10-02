@@ -40,7 +40,7 @@ public class Application extends ComponentDefinition {
 
     private HashMap<Integer, KeyPlacedInfo> keyPlacedInRing = new HashMap<>();
 
-    private HashMap<Integer, Long> addSendingTimes = new HashMap<>();
+    private HashMap<Integer, SendingInfo> addSendingTimes = new HashMap<>();
     private ArrayList<TestResult> addResult = new ArrayList<>();
 
 
@@ -56,8 +56,8 @@ public class Application extends ComponentDefinition {
     private Stats stats = new Stats();
 
     private Random rand = new Random();
-    private int NUMBER_OF_ADDS = 100;
-    private int NUMBER_OF_LOOKUPS = 100;
+    private int NUMBER_OF_ADDS = 10;
+    private int NUMBER_OF_LOOKUPS = 10;
     private int PERIODIC_PING_TIMEOUT = 2000;
 
     private int nSavedResponseTime = 10;
@@ -89,7 +89,7 @@ public class Application extends ComponentDefinition {
     private Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
-            log.info("Starts app with id: {} ", new Object[]{self.id});
+            //log.info("Starts app with id: {} ", new Object[]{self.id});
 
             schedulePing();
 
@@ -107,17 +107,26 @@ public class Application extends ComponentDefinition {
                 e.printStackTrace();
             }
 
+            commands.add(new Command(Command.TYPE.SLEEP, 100));
 
             for(int i = 0; i < NUMBER_OF_ADDS; i++) {
-                commands.add(new Command(Command.TYPE.ADD, itemsKey.get((NUMBER_OF_ADDS * self.id) + i), 500));
-                commands.add(new Command(Command.TYPE.SLEEP, 50));
+                int index = (NUMBER_OF_ADDS * self.id) + i;
+                if(index >= itemsKey.size()){
+                    index = index - itemsKey.size();
+                }
+                commands.add(new Command(Command.TYPE.ADD, itemsKey.get(index), 500));
+                commands.add(new Command(Command.TYPE.SLEEP, 100));
             }
 
 
-            commands.add(new Command(Command.TYPE.SLEEP, 5000));
+            commands.add(new Command(Command.TYPE.SLEEP, 50000));
 
             for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
-                commands.add(new Command(Command.TYPE.LOOKUP, itemsKey.get((NUMBER_OF_ADDS * self.id) + i), 500));
+                int index = (NUMBER_OF_LOOKUPS * self.id) + i;
+                if(index >= itemsKey.size()){
+                    index = index - itemsKey.size();
+                }
+                commands.add(new Command(Command.TYPE.LOOKUP, itemsKey.get(index), 500));
                 commands.add(new Command(Command.TYPE.SLEEP, 50));
             }
 
@@ -197,12 +206,15 @@ public class Application extends ComponentDefinition {
 
                 Item item = new Item(command.key, command.value);
 
-                addSendingTimes.put(storeCounter, System.currentTimeMillis());
+                SendingInfo si = new SendingInfo();
+                si.list.put(storeCounter, System.currentTimeMillis());
+
+                addSendingTimes.put(command.key, si);
                 trigger(new Add(self, ringNodes[ring], TYPE.ADD, item, storeCounter, self), network);
                 storeCounter++;
 
                 for(int i = 0; i < replicaAddress.size(); i++){
-                    addSendingTimes.put(storeCounter, System.currentTimeMillis());
+                    si.list.put(storeCounter, System.currentTimeMillis());
                     trigger(new Add(self, replicaAddress.get(i), TYPE.ADDREPLICA, item, storeCounter, self), network);
                     storeCounter++;
                 }
@@ -211,7 +223,8 @@ public class Application extends ComponentDefinition {
             else if(command.type == Command.TYPE.LOOKUP){
 
                 KeyPlacedInfo keyInfo = keyPlacedInRing.get(command.key);
-                int ring;
+                int ring = 0;
+                //log.info("Key size {}, lookup key: {} in ring {}" ,new Object[]{keyPlacedInRing.size(), command.key,  keyInfo});
                 if(keyInfo.ring != -1){
                     ring = keyInfo.ring;
                 } else {
@@ -220,7 +233,7 @@ public class Application extends ComponentDefinition {
                     }
                 }
 
-                trigger(new LookUp(self, ringNodes[keyInfo.ring], command.key, self, lookUpCounter), network);
+                trigger(new LookUp(self, ringNodes[ring], command.key, self, lookUpCounter), network);
                 lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
                 lookUpCounter++;
 
@@ -261,15 +274,32 @@ public class Application extends ComponentDefinition {
     private Handler<AddResponse> handleAddResponse = new Handler<AddResponse>() {
 
         public void handle(AddResponse msg){
+            stats.AddResponses++;
 
-            Long time = System.currentTimeMillis();
-            Long totalTime = time - addSendingTimes.get(msg.id);
+            if(addSendingTimes.containsKey(msg.key)) {
 
-            Long external1 = msg.startInnerLatency - addSendingTimes.get(msg.id);
-            Long internal = msg.endInnerLatency - msg.startInnerLatency;
-            Long external2 = time - msg.endInnerLatency;
-            Long total = external1 + internal + external2;
-            //log.info("{} Add from ring {}, Ex {} + {} int {} total {} = {} ", new Object[]{self, msg.fromRing, external1, external2, internal, total, totalTime});
+                SendingInfo si = addSendingTimes.get(msg.key);
+                if (si.list.size() == 1 && si.list.containsKey(msg.id)) {
+                    Long time = System.currentTimeMillis();
+                    Long external1 = msg.startInnerLatency - si.list.get(msg.id);
+                    Long internal = msg.endInnerLatency - msg.startInnerLatency;
+                    Long external2 = time - msg.endInnerLatency;
+                    Long total = external1 + internal + external2;
+
+                    addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total));
+                    ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
+
+                    while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
+                        ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
+                    }
+                    addSendingTimes.remove(msg.key);
+
+
+
+                } else {
+                    si.list.remove(msg.id);
+                }
+            }
 
             if(keyPlacedInRing.containsKey(msg.key)){
 
@@ -289,16 +319,7 @@ public class Application extends ComponentDefinition {
                 keyPlacedInRing.put(msg.key, keyInfo);
 
             }
-
-
-
-            addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total));
-            ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
-
-
-            while(ringController.get(msg.fromRing).size() > nSavedResponseTime){
-                ringController.get(msg.fromRing).remove(ringController.get(msg.fromRing).size() - 1);
-            }
+            //log.info("Add response key {}, keyplayced {}", new Object[]{msg.key, keyPlacedInRing.size()});
 
         }
 
@@ -357,7 +378,7 @@ public class Application extends ComponentDefinition {
             log.info("Node: {}", new Object[]{self});
 
             log.info("Stores: {}, LookUps: {}", new Object[]{addResult.size(), lookupResult.size()});
-            log.info("LookUpResponses: {}", new Object[]{stats.LookUpResponses});
+            log.info("LookUpResponses: {}, AddResponses: {}", new Object[]{stats.LookUpResponses, stats.AddResponses});
             //log.info("LookUp in store: {}, look up in replica {}", new Object[]{lookupInStore, lookupInReplica});
             //log.info("LookUp in store from ring: {}, LookUp in replica from ring {}", new Object[]{Arrays.toString(lookUpInRing), Arrays.toString(lookUpInRingReplicas)});
             //log.info("Stored to ring: {}, Added in store: {}, Added in replica {}\n", new Object[]{Arrays.toString(storedToRing), addCounter1, addCounter2});

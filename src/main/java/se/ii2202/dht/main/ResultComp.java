@@ -24,10 +24,12 @@ public class ResultComp extends ComponentDefinition {
 
     private NodeInfo selfAddress;
     private NodeInfo[] apps;
+    private String filename = "";
 
     public ResultComp(ResultInit init) {
         this.selfAddress = init.selfAddress;
         this.apps = init.apps;
+        this.filename = init.filename;
 
         subscribe(handleStart, control);
         subscribe(handleResponse, network);
@@ -62,7 +64,7 @@ public class ResultComp extends ComponentDefinition {
             storeTimes.addAll(msg.storeTimes);
             lookupTimes.addAll(msg.lookupTimes);
 
-            log.info("{} Received response: add {} lookup {}", new Object[]{selfAddress, storeTimes.size(), lookupTimes.size()});
+            //log.info("{} Received response: add {} lookup {}", new Object[]{selfAddress, storeTimes.size(), lookupTimes.size()});
             if(counter == apps.length){
                 try {
 
@@ -83,8 +85,7 @@ public class ResultComp extends ComponentDefinition {
     public void printresult() throws IOException {
 
 
-
-        File file = new File("C:/Users/Snellman/Desktop/DHTtests/test-1.txt");
+        File file = new File("./src/main/resources/tests/" + filename + ".txt");
         FileWriter writer = new FileWriter(file, true);
 
         writer.write("STORES:\r\n");
@@ -110,10 +111,12 @@ public class ResultComp extends ComponentDefinition {
 
         public final NodeInfo selfAddress;
         public NodeInfo[] apps;
+        public String filename;
 
-        public ResultInit(NodeInfo selfAddress, NodeInfo[] apps) {
+        public ResultInit(NodeInfo selfAddress, NodeInfo[] apps, String filename) {
             this.selfAddress = selfAddress;
             this.apps = apps;
+            this.filename = filename;
         }
     }
 }

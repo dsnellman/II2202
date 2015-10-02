@@ -2,6 +2,7 @@ package se.ii2202.dht.main;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.ii2202.dht.object.LatencyContainer;
 import se.ii2202.dht.object.NodeInfo;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
@@ -25,7 +26,7 @@ public class App extends ComponentDefinition {
     public App(AppInit init){
         subscribe(handleStart, control);
 
-        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.latency));
+        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.nRings, init.city, init.allCities, init.latency));
         connect(latencyLayer.getNegative(Timer.class), timer);
         connect(latencyLayer.getNegative(Network.class), network);
 
@@ -48,17 +49,21 @@ public class App extends ComponentDefinition {
         public int m;
         public NodeInfo app;
         public int nRings;
-        public LatencyLists latency;
+        public String city;
+        public ArrayList<LatencyContainer> latency;
         public ArrayList<Integer> replications;
         public  NodeInfo[] ringNodes;
+        public ArrayList<String> allCities;
 
-        public AppInit(NodeInfo app, int m, int nRings, LatencyLists latency, ArrayList<Integer> replications,  NodeInfo[] ringNodes){
+        public AppInit(NodeInfo app, int m, int nRings,String city, ArrayList<String> allCities, ArrayList<LatencyContainer> latency, ArrayList<Integer> replications,  NodeInfo[] ringNodes){
             this.m = m;
             this.app = app;
             this.latency = latency;
             this.nRings = nRings;
+            this.city = city;
             this.replications = replications;
             this.ringNodes = ringNodes;
+            this.allCities = allCities;
         }
 
     }

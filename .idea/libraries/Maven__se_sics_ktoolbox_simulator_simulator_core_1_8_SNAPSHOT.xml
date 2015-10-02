@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: se.sics.ktoolbox.simulator:simulator-core:1.8-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-core/1.8-SNAPSHOT/simulator-core-1.8-20151002.083114-1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-core/1.8-SNAPSHOT/simulator-core-1.8-20151002.083114-1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/se/sics/ktoolbox/simulator/simulator-core/1.8-SNAPSHOT/simulator-core-1.8-20151002.083114-1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

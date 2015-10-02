@@ -17,8 +17,8 @@
     <orderEntry type="library" name="Maven: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" name="Maven: se.sics.kompics.basic:kompics-port-network:0.8.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: se.sics.kompics.basic:kompics-port-timer:0.8.0-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: se.sics.ktoolbox.simulator:simulator-core:1.7-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: se.sics.ktoolbox.simulator:simulator-dsl:1.7-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: se.sics.ktoolbox.simulator:simulator-core:1.8-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: se.sics.ktoolbox.simulator:simulator-dsl:1.8-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.javassist:javassist:3.18.2-GA" level="project" />
     <orderEntry type="library" name="Maven: se.sics.kompics.simulation:kompics-simulation:0.8.3-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: se.sics.ktoolbox.util:basic:1.9-SNAPSHOT" level="project" />

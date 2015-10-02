@@ -3,6 +3,7 @@ package se.ii2202.dht.main;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.ii2202.dht.object.LatencyContainer;
 import se.ii2202.dht.object.NodeInfo;
 import se.sics.kompics.network.Address;
 import se.sics.p2ptoolbox.simulator.cmd.impl.StartAggregatorCmd;
@@ -32,18 +33,22 @@ public class Scenario {
 
     private static Random rand = new Random();
 
-    public static LatencyLists latencies;
+
 
     // SIMULATION VARIABLES
 
-    private final static int M = 12; //Number of bits in identifier
+    private final static int M = 14; //Number of bits in identifier
     private final static int nNode = 100; //Number of nodes in each ring
     private final static int nRings = 5; //Number of rings
-    private final static int nApps = 10; //Number of applications
+    private final static int nApps = 500; //Number of applications
+    private final static int runTime = 1200; //In seconds
 
     private static ArrayList<Integer> replications = new ArrayList<>();
-    private static ArrayList<Integer[]> latency = new ArrayList<>();
+    private static String[] allRingCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO"};
+    private static String[] allcities = new String[]{"VGNI", "SNGP", "ORGN", "IRLD"};
+    //private static String[] allcities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
 
+    private static String filename = "test1";
 
     // ********************
 
@@ -53,8 +58,10 @@ public class Scenario {
     public static Integer[] nodeIDs;
     public static Integer[] appIDs = new Integer[nApps];
     public static NodeInfo[] allApps = new NodeInfo[nApps];
+    public static ArrayList<String> ringcities = new ArrayList<>();
+    public static ArrayList<String> appcities = new ArrayList<>();
 
-
+    public static ArrayList<LatencyContainer> latencies;
 
     static {
 
@@ -69,11 +76,6 @@ public class Scenario {
 
         readIdsFromFile();
 
-        latency.add(new Integer[]{50, 100, 200, 500, 150}); //Europe latency
-        latency.add(new Integer[]{200, 500, 150, 100, 50}); //Asia latency
-        latency.add(new Integer[]{500, 150, 200, 50, 100}); //America latency
-        latency.add(new Integer[]{100, 50, 150, 500, 200}); //Russia latency
-
         //Replica on next ring
         replications.add(1);
 
@@ -82,6 +84,8 @@ public class Scenario {
 
         //Replica on next best ring
         //replications.add(-1);
+
+
 
 
     }
@@ -130,15 +134,14 @@ public class Scenario {
 
                     node = new BasicAddress(localHost, 23456, nodeId);
                     applicationAddress = new NodeInfo(node, nodeId);
-                    applicationAddress.ring = -1;
+
 
                     allApps[nodeId] = applicationAddress;
 
-                    int latencyIndex = rand.nextInt(latency.size());
+                    int cityIndex = rand.nextInt(allcities.length);
+                    applicationAddress.ring = cityIndex;
 
-
-                    //Apps.add(applicationAddress);
-                    return new App.AppInit(applicationAddress, M, nRings, latencies, replications, firstNodes);
+                    return new App.AppInit(applicationAddress, M, nRings, allcities[cityIndex], ringcities, latencies, replications, firstNodes);
                 }
 
                 public Integer getNodeId() {
@@ -174,6 +177,22 @@ public class Scenario {
 
                 public DHT.DhtInit getNodeComponentInit(Address aggregatorServer, Set<Address> bootstrapNodes) {
 
+                    if(latencies == null){
+
+                        while(ringcities.size() < nRings){
+                            int index = rand.nextInt(allRingCities.length);
+                            if(!ringcities.contains(allRingCities[index])){
+                                ringcities.add(allRingCities[index]);
+                            }
+                        }
+
+                        log.info("Cities:{}", new Object[]{ringcities.toString()});
+
+                        LatencyLists l = new LatencyLists((int) (runTime * 1.5));
+                        latencies = l.getLatencies();
+
+                    }
+
                     node = new BasicAddress(localHost, 12345, nodeId);
                     int id = nodeId / 10;
                     int ring = nodeId % 10;
@@ -183,6 +202,8 @@ public class Scenario {
                     if (firstNodes[ring] == null) {
                         firstNodes[ring] = nodeAddress;
                     }
+
+
 
                     return new DHT.DhtInit(nodeAddress, firstNodes[ring], M, replications, nRings);
                 }
@@ -226,7 +247,7 @@ public class Scenario {
                 @Override
                 public ResultComp.ResultInit getNodeComponentInit() {
                     aggregatorAddress.address = new BasicAddress(localHost, 12340, nodeId);;
-                    return new ResultComp.ResultInit(aggregatorAddress, allApps);
+                    return new ResultComp.ResultInit(aggregatorAddress, allApps, filename);
                 }
 
                 @Override
@@ -240,8 +261,6 @@ public class Scenario {
 
 
     public static SimulationScenario start() {
-
-        latencies = new LatencyLists();
 
 
         SimulationScenario scen = new SimulationScenario() {
@@ -270,8 +289,8 @@ public class Scenario {
 
 
                 process1.start();
-                processApp.startAfterStartOf(800 * 1000, process1);
-                startResultComp.startAfterTerminationOf(1000 * 1000, process1);
+                processApp.startAfterStartOf((long) ((runTime * 0.8) * 1000), process1);
+                startResultComp.startAfterTerminationOf(runTime * 1000, process1);
                 terminateAfterTerminationOf(10000, startResultComp);
 
             }
