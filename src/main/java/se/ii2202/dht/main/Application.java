@@ -53,16 +53,20 @@ public class Application extends ComponentDefinition {
     private ArrayList<Command> commands = new ArrayList<>();
 
     private ArrayList<ArrayList<RingController>> ringController = new ArrayList<>();
-
+    private int replications;
     private Stats stats = new Stats();
+
+    //=======       Behaviour variables         ===============
 
     private Random rand = new Random();
     private int NUMBER_OF_ADDS = 10;
     private int NUMBER_OF_LOOKUPS = 10;
     private int PERIODIC_PING_TIMEOUT = 2000;
-    private int replications;
 
-    //Which strategy to choose rings..
+
+
+    //========      Which strategy to choose rings..   ========
+
     private String testStrategy = "nFirst";
     private int n = 1;
 
@@ -72,7 +76,7 @@ public class Application extends ComponentDefinition {
     private boolean worstChoose = false;
 
 
-    private int nSavedResponseTime = 10;
+    //=========================================================
 
     public Application(ApplicationInit init) {
         self = init.selfAddress;
@@ -133,7 +137,7 @@ public class Application extends ComponentDefinition {
             }
 
 
-            commands.add(new Command(Command.TYPE.SLEEP, 50000));
+            commands.add(new Command(Command.TYPE.SLEEP, 100000));
 
             for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
                 int index = ((NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
@@ -211,6 +215,9 @@ public class Application extends ComponentDefinition {
             }
             else if(command.type == Command.TYPE.ADD){
 
+                if(storeCounter == 0 && self.id == 0)
+                    log.info("Start sending add");
+
                 //int ring = bestRing();
                 //int ring = rand.nextInt(nRings);
                 ArrayList<RingInfo> rings = chooseRing();
@@ -221,14 +228,14 @@ public class Application extends ComponentDefinition {
 
                 if(bestChoose) {
                     for (int i = 0; i < replications; i++) {
-                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
+                        //og.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
                         trigger(new Add(self, ringNodes[rings.get(i).ring], TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
                 } else if(worstChoose){
                     for (int i = 0; i < replications; i++) {
-                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(rings.size() - i).ring});
+                        //log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(rings.size() - i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
                         trigger(new Add(self, ringNodes[rings.get(rings.size() - i).ring], TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
@@ -236,14 +243,12 @@ public class Application extends ComponentDefinition {
                 } else if(randomChoose){
                     ArrayList<Integer> temp = new ArrayList<>();
                     for (int i = 0; i < replications; i++) {
-
                         si.list.put(storeCounter, System.currentTimeMillis());
                         int index = rand.nextInt(nRings);
                         while(temp.contains(index)){
                             index = rand.nextInt(nRings);
                         }
                         temp.add(index);
-                        log.info("{} sening add for key {} to {}", new Object[]{self, command.key, index});
                         trigger(new Add(self, ringNodes[index], TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
@@ -257,7 +262,12 @@ public class Application extends ComponentDefinition {
             }
             else if(command.type == Command.TYPE.LOOKUP){
 
+                if(lookUpCounter == 0 && self.id == 0)
+                    log.info("Start sending lookups, addresponses: {}", stats.AddResponses);
+
                 ArrayList<Integer> rings = keyPlacedInRing.get(command.key);
+
+                log.info("Look up for key: {}, in rings: {}", command.key, rings.toString());
 
                 for(int i = 0; i < rings.size(); i++){
                     log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
@@ -311,7 +321,7 @@ public class Application extends ComponentDefinition {
 
         public void handle(AddResponse msg){
             stats.AddResponses++;
-
+            log.info("received addresponse");
             if(addSendingTimes.containsKey(msg.key)) {
                 SendingInfo si = addSendingTimes.get(msg.key);
                 Long time = System.currentTimeMillis();
@@ -343,8 +353,9 @@ public class Application extends ComponentDefinition {
                 keyPlacedInRing.put(msg.key, list);
 
             }
-            //log.info("Add response key {}, keyplayced {}", new Object[]{msg.key, keyPlacedInRing.size()});
 
+            if(stats.AddResponses == NUMBER_OF_ADDS * replications)
+                log.info("Got responses from all sent addmessages");
         }
 
     };

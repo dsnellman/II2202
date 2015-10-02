@@ -56,7 +56,6 @@ public class Scenario {
     public static Integer[] appIDs = new Integer[nApps];
     public static NodeInfo[] allApps = new NodeInfo[nApps];
     public static ArrayList<String> ringcities = new ArrayList<>();
-    public static ArrayList<String> appcities = new ArrayList<>();
 
     public static ArrayList<LatencyContainer> latencies;
 
@@ -87,7 +86,7 @@ public class Scenario {
 
         //log.info("Cities:{}", new Object[]{ringcities.toString()});
 
-        LatencyLists l = new LatencyLists((int) (runTime * 100));
+        LatencyLists l = new LatencyLists(runTime * 100);
         latencies = l.getLatencies();
 
         File files = new File("./src/main/resources/tests/");

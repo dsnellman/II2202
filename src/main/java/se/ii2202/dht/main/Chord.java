@@ -87,8 +87,6 @@ public class Chord extends ComponentDefinition {
         subscribe(handleRingAdd, network);
         subscribe(handleLookUp, network);
         subscribe(handleRingLookUp, network);
-        subscribe(handlePing, network);
-        subscribe(handleRingPing, network);
 
         subscribe(handleAddTimer, timer);
         subscribe(handleRingAddTimer, timer);
@@ -660,35 +658,6 @@ public class Chord extends ComponentDefinition {
 
         }
     };
-
-    private final Handler<Ping> handlePing = new Handler<Ping>() {
-
-        @Override
-        public void handle(Ping msg) {
-            if(self.succ != self)
-                //TODO what to do when receive a ping msg?
-
-                trigger(new RingPing(self, self.succ, msg.returnAddress, msg.startAddress, msg.id, System.currentTimeMillis()), network);
-        }
-    };
-
-    private final Handler<RingPing> handleRingPing = new Handler<RingPing>() {
-
-        @Override
-        public void handle(RingPing msg) {
-
-            if(msg.startAddress != self){
-                trigger(new RingPing(self, self.succ, msg.returnAddress, msg.startAddress, msg.id, msg.startInnerLatencyTime), network);
-            }
-            else {
-                trigger(new Pong(self, msg.returnAddress, self.ring, msg.id, msg.startInnerLatencyTime, System.currentTimeMillis()), network);
-            }
-
-        }
-    };
-
-
-
 
 
 
