@@ -91,18 +91,31 @@ public class Scenario {
         LatencyLists l = new LatencyLists(PROPERTIES.runTime * 100);
         latencies = l.getLatencies();
 
+        filename = "n" + PROPERTIES.nNode + "_nRings" + PROPERTIES.nRings + "_nApps" + PROPERTIES.nApps + "_strategy";
+        if(PROPERTIES.bestChoose)
+            filename += "best";
+        else if(PROPERTIES.worstChoose)
+            filename += "worst";
+        else if(PROPERTIES.randomChoose)
+            filename += "random";
+
+        filename += "_replicas" + PROPERTIES.replications;
+
         File files = new File("./src/main/resources/tests/");
         int highest = 0;
         for(File f : files.listFiles()){
             String[] split = f.getName().split("-");
-            String number = split[0].substring(4);
-            int x = Integer.parseInt(number);
-            if(x > highest)
-                highest = x;
+            if(filename.equals(split[0].substring(0, split[0].length()-2))){
+                String number = split[0].substring(split[0].length()-1);
+                int x = Integer.parseInt(number);
+                if(x > highest)
+                    highest = x;
+            }
         }
         highest++;
+        if(highest > 0)
+            filename += "_" +   highest;
 
-        filename = "test" + highest;
         log.info("filename: {}" , filename);
     }
 

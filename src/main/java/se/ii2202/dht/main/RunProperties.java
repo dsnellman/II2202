@@ -13,12 +13,12 @@ public class RunProperties {
     public final int nRings = 5; //Number of rings
     public final int nApps = 540; //Number of applications
 
-    public final int replications = 1; //Not lower than 1
+    public final int replications = 3; //Not lower than 1
 
 
     //Time for handles to process work
-    public final boolean randomTime = true;
-    public final int constantProccessTime = 10;
+    public final boolean randomTime = false;
+    public final int constantProccessTime = 0;
     public final int maxProcessMsgTime = 10;
     public final int minProcessMsgTime = 5;
 
@@ -29,7 +29,7 @@ public class RunProperties {
     public int PERIODIC_PING_TIMEOUT = 2000;
 
     public int DELAY_BETWEEN_OP = 1000;
-    public int DELAY_BETWEEN_ADD_LOOKUP = 50000;
+    public int DELAY_BETWEEN_ADD_LOOKUP = 75000;
 
     //Strategy for choosing ring
     public String testStrategy = "nFirst";

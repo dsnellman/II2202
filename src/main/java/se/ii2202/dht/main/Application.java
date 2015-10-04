@@ -53,6 +53,7 @@ public class Application extends ComponentDefinition {
     private ArrayList<Command> commands = new ArrayList<>();
 
     private ArrayList<ArrayList<RingController>> ringController = new ArrayList<>();
+    private int[] nodeIndexes;
     //private int replications;
     private Stats stats = new Stats();
 
@@ -84,6 +85,8 @@ public class Application extends ComponentDefinition {
         self = init.selfAddress;
         PROPERTIES = init.properties;
         ringNodes = init.ringNodes;
+
+        nodeIndexes = new int [PROPERTIES.nRings];
 
         for(int i = 0; i < PROPERTIES.nRings; i++){
             ringController.add(new ArrayList<>());
@@ -220,20 +223,24 @@ public class Application extends ComponentDefinition {
                 SendingInfo si = new SendingInfo();
                 addSendingTimes.put(command.key, si);
 
+
+                int index = self.id % 10;
+
                 if(PROPERTIES.bestChoose) {
+
                     for (int i = 0; i < PROPERTIES.replications; i++) {
                         //og.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        int index = storeCounter % ringNodes.get(rings.get(i).ring).size();
+                        //int index = storeCounter % ringNodes.get(rings.get(i).ring).size();
                         //log.info("{} sening add for key {} to {} rings {}", new Object[]{self, command.key, rings.get(i).ring, rings.toString()});
                         trigger(new Add(self, ringNodes.get(rings.get(i).ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
+
                 } else if(PROPERTIES.worstChoose){
                     for (int i = 0; i < PROPERTIES.replications; i++) {
                         //log.info("{} sending add for key {} to {}, rings: {}", new Object[]{self, command.key, rings.get((PROPERTIES.nRings - 1) - i).ring, rings.toString()});
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        int index = storeCounter % ringNodes.get(rings.get((PROPERTIES.nRings - 1) - i).ring).size();
                         //log.info("{} sening add for key {} to ring {} and node {}, index: {}, size {}", new Object[]{self, command.key, rings.get(i).ring, ringNodes.get(rings.get(i).ring).get(index), index, ringNodes.get(rings.get(i).ring).size()});
                         trigger(new Add(self, ringNodes.get(rings.get((PROPERTIES.nRings - 1) - i).ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
@@ -247,7 +254,6 @@ public class Application extends ComponentDefinition {
                             ring = rand.nextInt(PROPERTIES.nRings);
                         }
                         temp.add(ring);
-                        int index = storeCounter % ringNodes.get(ring).size();
                         //log.info("{} sening add for key {} to ring {} and node {}, index: {}", new Object[]{self, command.key, ring, ringNodes.get(ring).get(index), index});
                         trigger(new Add(self, ringNodes.get(ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
@@ -275,7 +281,7 @@ public class Application extends ComponentDefinition {
                         lookUpCounter++;
                     }
                 }
-                else {
+                /*else {
 
                     ArrayList<RingInfo> choosedrings = chooseRing();
                     if(PROPERTIES.bestChoose) {
@@ -330,7 +336,7 @@ public class Application extends ComponentDefinition {
                     }
 
 
-                }
+                }*/
             }
 
             runNextCommand();
