@@ -17,10 +17,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 public class Scenario {
 
@@ -30,36 +27,46 @@ public class Scenario {
 
     private static Random rand = new Random();
 
-
+    private static RunProperties PROPERTIES;
 
     // SIMULATION VARIABLES
 
-    private final static int M = 14; //Number of bits in identifier
-    private final static int nNode = 500; //Number of nodes in each ring
-    private final static int nRings = 5; //Number of rings
-    private final static int nApps = 500; //Number of applications
-    private final static int runTime = 1000; //In seconds
-    private static int replications = 1; //Not lower than 1
+//    private final static int M = 14; //Number of bits in identifier
+//    private final static int nNode = 500; //Number of nodes in each ring
+//    private final static int nRings = 5; //Number of rings
+//    private final static int nApps = 540; //Number of applications
+//    private final static int runTime = 1400; //In seconds
+//    private static int replications = 1; //Not lower than 1
 
-    private static String[] allRingCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO"};
-    //private static String[] allcities = new String[]{"VGNI", "SNGP", "ORGN", "IRLD"};
-    private static String[] allcities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
+//    private static ArrayList<String> RingCities = new ArrayList<>(Arrays.asList("FRAN", "CALI", "SDNY", "SPLO", "TKYO"));
+//    private static String[] allCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
+
 
     private static String filename;
 
     // ********************
 
 
-    public static NodeInfo[] firstNodes = new NodeInfo[nRings];
-
+    public static NodeInfo[] firstNodes;
     public static Integer[] nodeIDs;
-    public static Integer[] appIDs = new Integer[nApps];
-    public static NodeInfo[] allApps = new NodeInfo[nApps];
-    public static ArrayList<String> ringcities = new ArrayList<>();
+    public static Integer[] appIDs;
+    public static NodeInfo[] allApps;
 
     public static ArrayList<LatencyContainer> latencies;
 
+    public static ArrayList<ArrayList<NodeInfo>> tenFirstNodes;
+
     static {
+        PROPERTIES = new RunProperties();
+        tenFirstNodes = new ArrayList<>();
+
+        firstNodes = new NodeInfo[PROPERTIES.nRings];
+
+        appIDs = new Integer[PROPERTIES.nApps];
+        allApps = new NodeInfo[PROPERTIES.nApps];
+
+        for(int i = 0; i < PROPERTIES.nRings; i++)
+            tenFirstNodes.add(new ArrayList<>());
 
         try {
             localHost = InetAddress.getByName("127.0.0.1");
@@ -67,7 +74,7 @@ public class Scenario {
             e.printStackTrace();
         }
 
-        for(int i = 0; i < nApps; i++)
+        for(int i = 0; i < PROPERTIES.nApps; i++)
             appIDs[i] = i;
 
         readIdsFromFile();
@@ -77,16 +84,11 @@ public class Scenario {
 
     private static void startUp(){
 
-        while(ringcities.size() < nRings){
-            int index = rand.nextInt(allRingCities.length);
-            if(!ringcities.contains(allRingCities[index])){
-                ringcities.add(allRingCities[index]);
-            }
-        }
+
 
         //log.info("Cities:{}", new Object[]{ringcities.toString()});
 
-        LatencyLists l = new LatencyLists(runTime * 100);
+        LatencyLists l = new LatencyLists(PROPERTIES.runTime * 100);
         latencies = l.getLatencies();
 
         File files = new File("./src/main/resources/tests/");
@@ -112,8 +114,8 @@ public class Scenario {
         {
             String line = br.readLine();
             String[] input = line.split(", ");
-            for (int i = 0; i < nNode; i++) {
-                for(int x = 0; x < nRings; x++) {
+            for (int i = 0; i < PROPERTIES.nNode; i++) {
+                for(int x = 0; x < PROPERTIES.nRings; x++) {
                     ids.add(Integer.parseInt(input[i] + "" + x));
                 }
             }
@@ -152,10 +154,10 @@ public class Scenario {
 
                     allApps[nodeId] = applicationAddress;
 
-                    int cityIndex = rand.nextInt(allcities.length);
+                    int cityIndex = nodeId % PROPERTIES.allCities.size();
                     applicationAddress.ring = cityIndex;
 
-                    return new App.AppInit(applicationAddress, M, nRings, allcities[cityIndex], ringcities, latencies, replications, firstNodes);
+                    return new App.AppInit(applicationAddress, PROPERTIES, PROPERTIES.allCities.get(cityIndex), latencies, tenFirstNodes);
                 }
 
                 public Integer getNodeId() {
@@ -207,9 +209,11 @@ public class Scenario {
                         firstNodes[ring] = nodeAddress;
                     }
 
+                    if(tenFirstNodes.get(ring).size() < 10){
+                        tenFirstNodes.get(ring).add(nodeAddress);
+                    }
 
-
-                    return new DHT.DhtInit(nodeAddress, firstNodes[ring], M, nRings);
+                    return new DHT.DhtInit(nodeAddress, firstNodes[ring], PROPERTIES);
                 }
 
 
@@ -293,8 +297,8 @@ public class Scenario {
 
 
                 process1.start();
-                processApp.startAfterStartOf((long) ((runTime * 0.5) * 1000), process1);
-                startResultComp.startAfterTerminationOf(runTime  * 1000, process1);
+                processApp.startAfterStartOf((long) ((PROPERTIES.runTime * 0.5) * 1000), process1);
+                startResultComp.startAfterStartOf(PROPERTIES.runTime  * 1000, process1);
                 terminateAfterTerminationOf(10000, startResultComp);
 
             }

@@ -25,15 +25,15 @@ public class LatencyLayer extends ComponentDefinition {
     private Positive<Network> network = requires(Network.class);
     private Negative<Network> local = provides(Network.class);
 
-
+    private RunProperties PROPERTIES;
     public NodeInfo selfAddress;
     public ArrayList<LatencyContainer> latency;
 
     public String city;
-    public int nRings;
+    //public int nRings;
 
 
-    public ArrayList<String> allCities;
+//    public ArrayList<String> allCities;
 
     public Integer[] currentOutgoingLatencies;
     public Integer[] currentIncomingLatencies;
@@ -43,11 +43,10 @@ public class LatencyLayer extends ComponentDefinition {
         selfAddress = init.selfAddress;
         latency = init.latency;
         city = init.city;
-        nRings = init.nRings;
-        allCities = init.allCities;
+        PROPERTIES = init.properties;
 
-        currentOutgoingLatencies = new Integer[init.nRings];
-        currentIncomingLatencies = new Integer[init.nRings];
+        currentOutgoingLatencies = new Integer[PROPERTIES.nRings];
+        currentIncomingLatencies = new Integer[PROPERTIES.nRings];
 
         subscribe(handleStart, control);
         subscribe(handleGoingFromApp, local);
@@ -60,7 +59,7 @@ public class LatencyLayer extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            //log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{selfAddress.id, city, allCities.toString()});
+            log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{selfAddress.id, city, PROPERTIES.RingCities.toString()});
             SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(0, 1000);
             PeriodicLatencyUpdateTimer sc = new PeriodicLatencyUpdateTimer(spt);
             spt.setTimeoutEvent(sc);
@@ -145,14 +144,14 @@ public class LatencyLayer extends ComponentDefinition {
 
         public void handle(PeriodicLatencyUpdateTimer event) {
             updateCounter++;
-            for(int i = 0; i < nRings; i++){
+            for(int i = 0; i < PROPERTIES.nRings; i++){
                 int index;
-                if(allCities.get(i) != city){
+                if(PROPERTIES.RingCities.get(i) != city){
 
-                    index = latency.indexOf(new LatencyContainer(city, allCities.get(i)));
+                    index = latency.indexOf(new LatencyContainer(city, PROPERTIES.RingCities.get(i)));
                     currentOutgoingLatencies[i] = latency.get(index).latencies.get(updateCounter);
 
-                    index = latency.indexOf(new LatencyContainer(allCities.get(i), city));
+                    index = latency.indexOf(new LatencyContainer(PROPERTIES.RingCities.get(i), city));
                     currentIncomingLatencies[i] = latency.get(index).latencies.get(updateCounter);
                 } else{
                     currentOutgoingLatencies[i] = 5;
@@ -173,16 +172,15 @@ public class LatencyLayer extends ComponentDefinition {
 
         public NodeInfo selfAddress;
         public ArrayList<LatencyContainer> latency;
-        public int nRings;
         public String city;
-        public ArrayList<String> allCities;
+        public RunProperties properties;
 
-        public LatencyInit(NodeInfo selfAddress, int nRings, String city, ArrayList<String> allCities, ArrayList<LatencyContainer> latency){
+        public LatencyInit(NodeInfo selfAddress,RunProperties properties, String city, ArrayList<LatencyContainer> latency){
             this.selfAddress = selfAddress;
             this.latency = latency;
-            this.nRings = nRings;
+            this.properties =properties;
             this.city = city;
-            this.allCities = allCities;
+
         }
 
 

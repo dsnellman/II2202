@@ -10,6 +10,7 @@ public class TestResult {
     public Long external2;
     public Long internal;
     public Long total;
+    public Long time;
     public int messages;
     public int ring;
     public int appid;
@@ -17,7 +18,7 @@ public class TestResult {
     public TestType type;
 
 
-    public TestResult(TestType type, int appid, int ring, int nMessages, int key,  Long external1, Long external2, Long internal, Long total){
+    public TestResult(TestType type, int appid, int ring, int nMessages, int key,  Long external1, Long external2, Long internal, Long total, Long time){
         this.external1 = external1;
         this.external2 = external2;
         this.internal = internal;
@@ -27,5 +28,6 @@ public class TestResult {
         this.type = type;
         this.appid = appid;
         this.key = key;
+        this.time = time;
     }
 }

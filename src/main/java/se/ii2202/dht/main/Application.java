@@ -28,14 +28,14 @@ public class Application extends ComponentDefinition {
     private Positive<Network> network = requires(Network.class);
 
     private NodeInfo self;
-    private NodeInfo[] ringNodes;
+    private ArrayList<ArrayList<NodeInfo>> ringNodes;
 
     private int lookUpCounter = 1;
     private int storeCounter = 1;
     private int pingCounter = 1;
 
-    private int M;
-    private int nRings;
+    //private int M;
+    //private int nRings;
     private List<Integer> itemsKey = new ArrayList<>();
 
 
@@ -53,39 +53,39 @@ public class Application extends ComponentDefinition {
     private ArrayList<Command> commands = new ArrayList<>();
 
     private ArrayList<ArrayList<RingController>> ringController = new ArrayList<>();
-    private int replications;
+    //private int replications;
     private Stats stats = new Stats();
+
+    private RunProperties PROPERTIES;
 
     //=======       Behaviour variables         ===============
 
     private Random rand = new Random();
-    private int NUMBER_OF_ADDS = 10;
-    private int NUMBER_OF_LOOKUPS = 10;
-    private int PERIODIC_PING_TIMEOUT = 2000;
+//    private int NUMBER_OF_ADDS = 100;
+//    private int NUMBER_OF_LOOKUPS = 100;
+//    private int PERIODIC_PING_TIMEOUT = 2000;
 
 
 
     //========      Which strategy to choose rings..   ========
 
-    private String testStrategy = "nFirst";
-    private int n = 1;
-
-
-    private boolean randomChoose = false;  //Not tested yet....
-    private boolean bestChoose = false;
-    private boolean worstChoose = true;
+//    private String testStrategy = "nFirst";
+//    private int n = 1;
+//
+//
+//    private boolean randomChoose = false;  //Not tested yet....
+//    private boolean bestChoose = false;
+//    private boolean worstChoose = true;
 
 
     //=========================================================
 
     public Application(ApplicationInit init) {
         self = init.selfAddress;
-        M = init.M;
-        nRings = init.nRings;
-        replications = init.replications;
+        PROPERTIES = init.properties;
         ringNodes = init.ringNodes;
 
-        for(int i = 0; i < nRings; i++){
+        for(int i = 0; i < PROPERTIES.nRings; i++){
             ringController.add(new ArrayList<>());
         }
 
@@ -128,21 +128,21 @@ public class Application extends ComponentDefinition {
                 e.printStackTrace();
             }
 
-            commands.add(new Command(Command.TYPE.SLEEP, 100000));
+            commands.add(new Command(Command.TYPE.SLEEP, 10000));
 
-            for(int i = 0; i < NUMBER_OF_ADDS; i++) {
-                int index = ((NUMBER_OF_ADDS * self.id) + i) % 10000;
+            for(int i = 0; i < PROPERTIES.NUMBER_OF_ADDS; i++) {
+                int index = ((PROPERTIES.NUMBER_OF_ADDS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.ADD, itemsKey.get(index), 500));
-                commands.add(new Command(Command.TYPE.SLEEP, 1000));
+                commands.add(new Command(Command.TYPE.SLEEP, PROPERTIES.DELAY_BETWEEN_OP));
             }
 
 
-            commands.add(new Command(Command.TYPE.SLEEP, 200000));
+            commands.add(new Command(Command.TYPE.SLEEP, PROPERTIES.DELAY_BETWEEN_ADD_LOOKUP));
 
-            for(int i = 0; i < NUMBER_OF_LOOKUPS; i++) {
-                int index = ((NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
+            for(int i = 0; i < PROPERTIES.NUMBER_OF_LOOKUPS; i++) {
+                int index = ((PROPERTIES.NUMBER_OF_LOOKUPS * self.id) + i) % 10000;
                 commands.add(new Command(Command.TYPE.LOOKUP, itemsKey.get(index), 500));
-                commands.add(new Command(Command.TYPE.SLEEP, 1000));
+                commands.add(new Command(Command.TYPE.SLEEP, PROPERTIES.DELAY_BETWEEN_OP));
             }
 
 
@@ -172,23 +172,20 @@ public class Application extends ComponentDefinition {
     public ArrayList<RingInfo> chooseRing(){
         ArrayList<RingInfo> ringAvg = new ArrayList<>();
 
-        if(testStrategy == "nFirst") {
+        if(PROPERTIES.testStrategy == "nFirst") {
 
-            for (int i = 0; i < nRings; i++) {
+            for (int i = 0; i < PROPERTIES.nRings; i++) {
                 int totalRing = 0;
                 ArrayList<RingController> ring = ringController.get(i);
-                for(int j = 0; j < n; j++){
+                for(int j = 0; j < PROPERTIES.n; j++){
                     totalRing += ring.get(j).totalTime;
                 }
 
-                ringAvg.add(new RingInfo(i, totalRing / n));
+                ringAvg.add(new RingInfo(i, totalRing / PROPERTIES.n));
                 //log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, n, i, totalRing / n});
             }
 
         }
-
-
-
 
         Collections.sort(ringAvg, new CompareRingInfo());
         //log.info("return ring: {}",ringAvg.toString());
@@ -223,30 +220,36 @@ public class Application extends ComponentDefinition {
                 SendingInfo si = new SendingInfo();
                 addSendingTimes.put(command.key, si);
 
-                if(bestChoose) {
-                    for (int i = 0; i < replications; i++) {
+                if(PROPERTIES.bestChoose) {
+                    for (int i = 0; i < PROPERTIES.replications; i++) {
                         //og.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        trigger(new Add(self, ringNodes[rings.get(i).ring], TYPE.ADD, item, storeCounter, self), network);
+                        int index = storeCounter % ringNodes.get(rings.get(i).ring).size();
+                        log.info("{} sening add for key {} to {} rings {}", new Object[]{self, command.key, rings.get(i).ring, rings.toString()});
+                        trigger(new Add(self, ringNodes.get(rings.get(i).ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
-                } else if(worstChoose){
-                    for (int i = 0; i < replications; i++) {
-                        //log.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(rings.size() - i).ring});
+                } else if(PROPERTIES.worstChoose){
+                    for (int i = 0; i < PROPERTIES.replications; i++) {
+                        //log.info("{} sending add for key {} to {}, rings: {}", new Object[]{self, command.key, rings.get((PROPERTIES.nRings - 1) - i).ring, rings.toString()});
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        trigger(new Add(self, ringNodes[rings.get((rings.size() - i) -1).ring], TYPE.ADD, item, storeCounter, self), network);
+                        int index = storeCounter % ringNodes.get(rings.get((PROPERTIES.nRings - 1) - i).ring).size();
+                        //log.info("{} sening add for key {} to ring {} and node {}, index: {}, size {}", new Object[]{self, command.key, rings.get(i).ring, ringNodes.get(rings.get(i).ring).get(index), index, ringNodes.get(rings.get(i).ring).size()});
+                        trigger(new Add(self, ringNodes.get(rings.get((PROPERTIES.nRings - 1) - i).ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
-                } else if(randomChoose){
+                } else if(PROPERTIES.randomChoose){
                     ArrayList<Integer> temp = new ArrayList<>();
-                    for (int i = 0; i < replications; i++) {
+                    for (int i = 0; i < PROPERTIES.replications; i++) {
                         si.list.put(storeCounter, System.currentTimeMillis());
-                        int index = rand.nextInt(nRings);
-                        while(temp.contains(index)){
-                            index = rand.nextInt(nRings);
+                        int ring = rand.nextInt(PROPERTIES.nRings);
+                        while(temp.contains(ring)){
+                            ring = rand.nextInt(PROPERTIES.nRings);
                         }
-                        temp.add(index);
-                        trigger(new Add(self, ringNodes[index], TYPE.ADD, item, storeCounter, self), network);
+                        temp.add(ring);
+                        int index = storeCounter % ringNodes.get(ring).size();
+                        log.info("{} sening add for key {} to ring {} and node {}, index: {}", new Object[]{self, command.key, ring, ringNodes.get(ring).get(index), index});
+                        trigger(new Add(self, ringNodes.get(ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
 
@@ -264,16 +267,73 @@ public class Application extends ComponentDefinition {
 
                 ArrayList<Integer> rings = keyPlacedInRing.get(command.key);
 
-                //log.info("Look up for key: {}, in rings: {}", command.key, rings.toString());
+                if(PROPERTIES.lookUpToAll){
 
-                for(int i = 0; i < rings.size(); i++){
-                    //log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
-                    trigger(new LookUp(self, ringNodes[rings.get(i)], command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
-                    lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
-                    lookUpCounter++;
+                    for(int i = 0; i < rings.size(); i++){
+                        //log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
+                        int index = lookUpCounter % ringNodes.get(rings.get(i)).size();
+                        //log.info("{} sening lookup for key {} to ring {} and node {}, index: {}, size {}", new Object[]{self, command.key, i, ringNodes.get(rings.get(i)).get(index), index, ringNodes.get(rings.get(i)).size()});
+                        trigger(new LookUp(self, ringNodes.get(rings.get(i)).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
+                        lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
+                        lookUpCounter++;
+                    }
                 }
+                else {
+
+                    ArrayList<RingInfo> choosedrings = chooseRing();
+                    if(PROPERTIES.bestChoose) {
+                        int counter = 0;
+                        for(int i = 0; i < choosedrings.size(); i++){
+                            if(rings.contains(choosedrings.get(i).ring)){
+                                int index = lookUpCounter % ringNodes.get(choosedrings.get(i).ring).size();
+                                log.info("{} sending lookup for key {} to {}, rings: {}", new Object[]{self, command.key, choosedrings.get(i).ring, rings.toString()});
+                                trigger(new LookUp(self, ringNodes.get(choosedrings.get(i).ring).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
+                                lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
+                                lookUpCounter++;
+                                counter++;
+                                if(counter == PROPERTIES.nLookUp)
+                                    break;
+                            }
+                        }
+                    }
+                    else if(PROPERTIES.worstChoose) {
+                        int counter = 0;
+                        for(int i = PROPERTIES.nRings -1; i >= 0; i--){
+                            if(rings.contains(choosedrings.get(i).ring)){
+                                int index = lookUpCounter % ringNodes.get(choosedrings.get(i).ring).size();
+                                log.info("{} sending lookup for key {} to {}, rings: {}", new Object[]{self, command.key, choosedrings.get(i).ring, rings.toString()});
+                                trigger(new LookUp(self, ringNodes.get(choosedrings.get(i).ring).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
+                                lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
+                                lookUpCounter++;
+                                counter++;
+                                if(counter == PROPERTIES.nLookUp)
+                                    break;
+                            }
 
 
+                        }
+                    }
+                    else if(PROPERTIES.randomChoose){
+                        ArrayList<Integer> temp = new ArrayList<>();
+                        for(int i = 0; i < PROPERTIES.nLookUp; i++){
+
+                            int x = rand.nextInt(PROPERTIES.nRings);
+                            while(temp.contains(x)){
+                                x = rand.nextInt(PROPERTIES.nRings);
+                            }
+
+                            int index = lookUpCounter % ringNodes.get(rings.get(x)).size();
+                            trigger(new LookUp(self, ringNodes.get(rings.get(i)).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
+                            lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
+                            lookUpCounter++;
+                            temp.add(ringNodes.get(rings.get(i)).get(index).ring);
+
+                        }
+
+                    }
+
+
+                }
             }
 
             runNextCommand();
@@ -305,7 +365,7 @@ public class Application extends ComponentDefinition {
                 stats.LookUpResponses++;
                 if(msg.answer == LookUpResponse.LookUp.InStore || msg.answer == LookUpResponse.LookUp.InReplica) {
 
-                    lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total));
+                    lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total, receivedTime));
                     ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
                 }
 
@@ -331,7 +391,7 @@ public class Application extends ComponentDefinition {
 
 
                 if (si.list.size() == 1 && si.list.containsKey(msg.id)) {
-                    addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total));
+                    addResult.add(new TestResult(TestResult.TestType.STORE, self.id, msg.fromRing, msg.msgCounter, msg.key, external1, external2, internal, total, time));
                     addSendingTimes.remove(msg.key);
 
                 } else {
@@ -349,7 +409,7 @@ public class Application extends ComponentDefinition {
                 keyPlacedInRing.put(msg.key, list);
             }
 
-            if(stats.AddResponses == NUMBER_OF_ADDS * replications && self.id == 0)
+            if(stats.AddResponses == PROPERTIES.NUMBER_OF_ADDS * PROPERTIES.replications && self.id == 0)
                 log.info("Got responses from all sent addmessages");
         }
 
@@ -360,16 +420,14 @@ public class Application extends ComponentDefinition {
 
         public void handle(PeriodicPingTimer event) {
 
-            for(int i = 0; i < ringNodes.length; i++){
-                if(ringNodes[i] != null){
-                    pingSendingTimes.put(pingCounter, System.currentTimeMillis());
+            for(int i = 0; i < ringNodes.size(); i++){
+                pingSendingTimes.put(pingCounter, System.currentTimeMillis());
 
-                    int index = ((NUMBER_OF_LOOKUPS * self.id) + 0) % 10000;
-                    trigger(new LookUp(self, ringNodes[i], itemsKey.get(index), self, pingCounter, LookUp.LookUpTYPE.PING), network);
-                    //trigger(new Ping(self, ringNodes[i],pingCounter), network);
-                    pingCounter++;
-
-                }
+                int keyindex = ((PROPERTIES.NUMBER_OF_LOOKUPS * self.id) + 0) % 10000;
+                int nodeindex = storeCounter % ringNodes.get(i).size();
+                trigger(new LookUp(self, ringNodes.get(i).get(nodeindex), itemsKey.get(keyindex), self, pingCounter, LookUp.LookUpTYPE.PING), network);
+                //trigger(new Ping(self, ringNodes[i],pingCounter), network);
+                pingCounter++;
             }
 
         }
@@ -391,7 +449,7 @@ public class Application extends ComponentDefinition {
     }
 
     private void schedulePing() {
-        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(PERIODIC_PING_TIMEOUT, PERIODIC_PING_TIMEOUT);
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(PROPERTIES.PERIODIC_PING_TIMEOUT, PROPERTIES.PERIODIC_PING_TIMEOUT);
         PeriodicPingTimer sc = new PeriodicPingTimer(spt);
         spt.setTimeoutEvent(sc);
         trigger(spt, timer);
@@ -405,6 +463,7 @@ public class Application extends ComponentDefinition {
             log.info("Node: {}", new Object[]{self});
 
             log.info("Stores: {}, LookUps: {}", new Object[]{addResult.size(), lookupResult.size()});
+            log.info("Sent add: {}, Sent LookUps: {}", new Object[]{storeCounter, lookUpCounter});
             log.info("LookUpResponses: {}, AddResponses: {}", new Object[]{stats.LookUpResponses, stats.AddResponses});
             //log.info("LookUp in store: {}, look up in replica {}", new Object[]{lookupInStore, lookupInReplica});
             //log.info("LookUp in store from ring: {}, LookUp in replica from ring {}", new Object[]{Arrays.toString(lookUpInRing), Arrays.toString(lookUpInRingReplicas)});
@@ -421,17 +480,13 @@ public class Application extends ComponentDefinition {
     public static class ApplicationInit extends Init<Application> {
 
         public NodeInfo selfAddress;
-        public int M;
-        public int nRings;
-        public int replications;
-        public NodeInfo[] ringNodes;
+        public RunProperties properties;
+        public ArrayList<ArrayList<NodeInfo>> ringNodes;
         public ArrayList<LatencyContainer> latency;
 
-        public ApplicationInit(NodeInfo selfAddress, int M, int nRings, int replications, NodeInfo[] ringNodes, ArrayList<LatencyContainer> latency) {
+        public ApplicationInit(NodeInfo selfAddress,RunProperties properties, ArrayList<ArrayList<NodeInfo>> ringNodes, ArrayList<LatencyContainer> latency) {
             this.selfAddress = selfAddress;
-            this.M = M;
-            this.nRings = nRings;
-            this.replications = replications;
+            this.properties = properties;
             this.ringNodes = ringNodes;
             this.latency = latency;
         }

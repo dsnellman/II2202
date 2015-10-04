@@ -49,23 +49,24 @@ public class Chord extends ComponentDefinition {
 
     private Random rand = new Random();
 
-    private final int STABILIZE_TIMEOUT = 2000;
-    private final int M;
-    private final int nRings;
+    private RunProperties PROPERTIES;
 
-    private final int maxProcessMsgTime = 10;
+    private final int STABILIZE_TIMEOUT = 2000;
+    //private final int M;
+    //private final int nRings;
+
+    //private final int maxProcessMsgTime = 10;
 
     public Chord(ChordInit init) {
 
         self = init.selfAddress;
         firstNode = init.firstNode;
-        M = init.m;
-        nRings = init.nRings;
+        PROPERTIES = init.properties;
 
         //Init fingers
         fingers.add(new Finger(self.id));
-        for (int k = 1; k <= M; k++) {
-            int s = (int) ((self.id + Math.pow(2, k - 1)) % Math.pow(2, M));
+        for (int k = 1; k <= PROPERTIES.M; k++) {
+            int s = (int) ((self.id + Math.pow(2, k - 1)) % Math.pow(2, PROPERTIES.M));
             fingers.add(new Finger(s));
         }
 
@@ -109,7 +110,7 @@ public class Chord extends ComponentDefinition {
 
             if (self == firstNode) {
 
-                for (int i = 0; i <= M; i++) {
+                for (int i = 0; i <= PROPERTIES.M; i++) {
                     fingers.get(i).node = self;
                 }
 
@@ -180,14 +181,14 @@ public class Chord extends ComponentDefinition {
 
             } else if (msg.type == TYPE.INIT_FINGER){
 
-                if(msg.finger == M)
+                if(msg.finger == PROPERTIES.M)
                     update_others();
                 else {
 
-                    for(int i = msg.finger; i < M; i++){
+                    for(int i = msg.finger; i < PROPERTIES.M; i++){
                         if (between(fingers.get(i + 1).start, self.id, fingers.get(i).node.id, true, false)) {
                             fingers.get(i + 1).node = fingers.get(i).node;
-                            if(i == M-1)
+                            if(i == PROPERTIES.M-1)
                                 update_others();
                         } else {
                             trigger(new FindSuccessor(self, storedAddress, TYPE.INIT_FINGER, fingers.get(i + 1).start, self, i +1), network);
@@ -219,11 +220,11 @@ public class Chord extends ComponentDefinition {
         public void handle(ClosestFingerResponse msg) {
             //log.info("{} | Received ClosestFingerResponse msg from {}", new Object[]{self, msg.getSource()});
 
-            if(msg.type == TYPE.ADD || msg.type == TYPE.ADDREPLICA || msg.type == TYPE.LOOKUP) {
+            if(msg.type == TYPE.ADD || msg.type == TYPE.LOOKUP) {
 
-                int value = rand.nextInt(maxProcessMsgTime) + 1;
+                int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
                 int sleep = value;
-                if(msg.lookupType == LookUp.LookUpTYPE.LOOKUP) {
+                if(msg.lookupType != LookUp.LookUpTYPE.PING) {
                     //SIMULATING INTERNAL LATENCY
 
                     processingAppMsgClosest.put(processedMsgClosestCounter, value);
@@ -263,7 +264,8 @@ public class Chord extends ComponentDefinition {
 
                 if (msg.type == TYPE.JOIN) {
                     trigger(new JoinResponse(self, msg.returnAddress, nPrime.succ), network);
-                } else if (msg.type == TYPE.ADD || msg.type == TYPE.ADDREPLICA) {
+                } else if (msg.type == TYPE.ADD) {
+                    msg.msgCounter++;
                     trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
                 } else if (msg.type == TYPE.LOOKUP) {
                     msg.msgCounter++;
@@ -283,7 +285,8 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(InnerLatencyTimerClosest timer) {
             ClosestFingerResponse msg = timer.closestFingerResponse;
-            if(msg.lookupType == LookUp.LookUpTYPE.LOOKUP)
+
+            if(msg.lookupType != LookUp.LookUpTYPE.PING)
                 processingAppMsgClosest.remove(timer.msgId);
 
 
@@ -300,11 +303,10 @@ public class Chord extends ComponentDefinition {
                 trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
                 return;
             }
-
-            if (msg.type == TYPE.ADD || msg.type == TYPE.ADDREPLICA) {
+            msg.msgCounter++;
+            if (msg.type == TYPE.ADD) {
                 trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
             } else if (msg.type == TYPE.LOOKUP) {
-                msg.msgCounter++;
                 trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
             }
 
@@ -334,11 +336,11 @@ public class Chord extends ComponentDefinition {
             if(msg.type == TYPE.INIT){
                 self.pred = msg.node;
 
-                for(int i = 1; i < M; i++){
+                for(int i = 1; i < PROPERTIES.M; i++){
                     if (between(fingers.get(i + 1).start, self.id, fingers.get(i).node.id, true, false)) {
                         //log.info("{} (Succ: {}, Pred: {}) => Finger {} to {}", new Object[]{self, self.succ.id, self.pred.id, i+1, fingers.get(i).node.id});
                         fingers.get(i + 1).node = fingers.get(i).node;
-                        if(i == M-1)
+                        if(i == PROPERTIES.M-1)
                             update_others();
                     } else {
                         trigger(new FindSuccessor(self, storedAddress, TYPE.INIT_FINGER, fingers.get(i + 1).start, self, i +1), network);
@@ -357,7 +359,7 @@ public class Chord extends ComponentDefinition {
 
 
                 //FIX_FINGERS
-                int index = rand.nextInt(M) + 1;
+                int index = rand.nextInt(PROPERTIES.M) + 1;
                 //log.info("{} Fixing finger ({}).start: {}", new Object[]{self, index, fingers.get(index).start});
                 NodeInfo succ = find_successor(fingers.get(index).start, self, TYPE.FIX_FINGER, index, null, 0,0,0L, null);
                 if(succ != null)
@@ -403,7 +405,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime) + 1;
+            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
             processingAppMsgAdd.put(processedMsgAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgAdd.entrySet().iterator();
@@ -460,7 +462,7 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime) + 1;
+            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
             processingAppMsgRingAdd.put(processedMsgRingAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgRingAdd.entrySet().iterator();
@@ -538,7 +540,7 @@ public class Chord extends ComponentDefinition {
             if(msg.startInnerLatency == 0L)
                 msg.startInnerLatency = System.currentTimeMillis();
 
-            int value = rand.nextInt(maxProcessMsgTime) +1;
+            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
             int sleep = value;
 
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
@@ -554,6 +556,8 @@ public class Chord extends ComponentDefinition {
                 Map.Entry pair = (Map.Entry) it.next();
                 sleep += (Integer) pair.getValue();
             }
+
+            //log.info("{} got lookup type: {} , value {} sleep {}, n {}", new Object[]{self, msg.type, value, sleep, processingAppMsgLookUp.size()});
 
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);
@@ -612,15 +616,21 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(maxProcessMsgTime) +1;
+            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
             int sleep = value;
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
                 //SIMULATING INTERNAL LATENCY
                 sleep = 0;
-                processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
+                processingAppMsgRingLookUp.put(processedMsgRingLookUpCounter, value);
             }
 
+            Iterator it = processingAppMsgRingLookUp.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                sleep += (Integer) pair.getValue();
+            }
 
+//            log.info("{} got lookup type: {} , value {} sleep {}, n {}", new Object[]{self, msg.type, value, sleep, processingAppMsgLookUp.size()});
             //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingLookUp.size(), processedMsgRingLookUpCounter});
 
             ScheduleTimeout spt = new ScheduleTimeout(sleep);
@@ -674,12 +684,12 @@ public class Chord extends ComponentDefinition {
 
     public void update_others() {
 
-        for (int i = 1; i <= M; i++) {
+        for (int i = 1; i <= PROPERTIES.M; i++) {
             int x = (int) Math.pow(2, i - 1);
             if (self.id - x >= 0) {
                 x = self.id - x;
             } else {
-                x = (M - 1) + x;
+                x = (PROPERTIES.M - 1) + x;
             }
 
             NodeInfo p = find_predecessor(x, self, TYPE.OTHERS, i, null,0, 0, null, 0L);
@@ -717,7 +727,7 @@ public class Chord extends ComponentDefinition {
 
     public NodeInfo closest_finger(int id) {
         //log.info("{} |cloest finger for id : {}", new Object[]{self, id});
-        for (int i = M; i >= 1; i--) {
+        for (int i = PROPERTIES.M; i >= 1; i--) {
             if (between(fingers.get(i).node.id, self.id, id, false, false)) {
                 if(fingers.get(i).node.id == -1)
                     log.info("Finger = null");
@@ -790,14 +800,12 @@ public class Chord extends ComponentDefinition {
 
         public NodeInfo selfAddress;
         public NodeInfo firstNode;
-        public int m;
-        public int nRings;
+        public RunProperties properties;
 
-        public ChordInit(NodeInfo self, NodeInfo firstNode, int m, int nRings) {
+        public ChordInit(NodeInfo self, NodeInfo firstNode, RunProperties properties) {
             this.selfAddress = self;
             this.firstNode = firstNode;
-            this.m = m;
-            this.nRings = nRings;
+            this.properties = properties;
         }
 
 

@@ -26,11 +26,11 @@ public class App extends ComponentDefinition {
     public App(AppInit init){
         subscribe(handleStart, control);
 
-        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.nRings, init.city, init.allCities, init.latency));
+        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.properties, init.city, init.latency));
         connect(latencyLayer.getNegative(Timer.class), timer);
         connect(latencyLayer.getNegative(Network.class), network);
 
-        Application = create(Application.class, new Application.ApplicationInit(init.app, init.m, init.nRings, init.replications, init.ringNodes, init.latency));
+        Application = create(Application.class, new Application.ApplicationInit(init.app, init.properties, init.ringNodes, init.latency));
         connect(Application.getNegative(Timer.class), timer);
         connect(Application.getNegative(Network.class), latencyLayer.getPositive(Network.class));
 
@@ -46,24 +46,18 @@ public class App extends ComponentDefinition {
 
     public static class AppInit extends Init<App> {
 
-        public int m;
         public NodeInfo app;
-        public int nRings;
         public String city;
         public ArrayList<LatencyContainer> latency;
-        public int replications;
-        public  NodeInfo[] ringNodes;
-        public ArrayList<String> allCities;
+        public ArrayList<ArrayList<NodeInfo>> ringNodes;
+        public RunProperties properties;
 
-        public AppInit(NodeInfo app, int m, int nRings,String city, ArrayList<String> allCities, ArrayList<LatencyContainer> latency, int replications,  NodeInfo[] ringNodes){
-            this.m = m;
+        public AppInit(NodeInfo app, RunProperties properties, String city, ArrayList<LatencyContainer> latency, ArrayList<ArrayList<NodeInfo>> ringNodes){
+            this.properties = properties;
             this.app = app;
             this.latency = latency;
-            this.nRings = nRings;
             this.city = city;
-            this.replications = replications;
             this.ringNodes = ringNodes;
-            this.allCities = allCities;
         }
 
     }

@@ -27,18 +27,14 @@ public class DHT extends ComponentDefinition {
 
     private final Component chord;
 
-
-
-    private final int M;
-
     public DHT(DhtInit init){
         this.selfAddress = init.selfAddress;
         this.firstNode = init.firstNode;
-        this.M = init.m;
+
 
         subscribe(handleStart, control);
 
-        chord = create(Chord.class, new Chord.ChordInit(selfAddress, firstNode, M, init.nRings));
+        chord = create(Chord.class, new Chord.ChordInit(selfAddress, firstNode, init.properties));
         connect(chord.getNegative(Timer.class), timer);
         connect(chord.getNegative(Network.class), network);
 
@@ -54,14 +50,12 @@ public class DHT extends ComponentDefinition {
     public static class DhtInit extends Init<DHT> {
         public NodeInfo selfAddress;
         public NodeInfo firstNode;
-        public int m;
-        public int nRings;
+        public RunProperties properties;
 
-        public DhtInit(NodeInfo selfAddress, NodeInfo firstNode, int m, int nRings) {
+        public DhtInit(NodeInfo selfAddress, NodeInfo firstNode, RunProperties properties) {
             this.selfAddress = selfAddress;
             this.firstNode = firstNode;
-            this.m = m;
-            this.nRings = nRings;
+            this.properties = properties;
         }
 
     }
