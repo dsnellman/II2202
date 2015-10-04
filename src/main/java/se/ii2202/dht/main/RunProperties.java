@@ -9,9 +9,9 @@ public class RunProperties {
     public final int runTime = 1000; //In seconds
 
     public final int M = 14; //Number of bits in identifier
-    public final int nNode = 500; //Number of nodes in each ring
+    public final int nNode = 100; //Number of nodes in each ring
     public final int nRings = 5; //Number of rings
-    public final int nApps = 540; //Number of applications
+    public final int nApps = 90; //Number of applications
 
     public final int replications = 3; //Not lower than 1
 

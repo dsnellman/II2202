@@ -312,7 +312,7 @@ public class Scenario {
                 process1.start();
                 processApp.startAfterStartOf((long) ((PROPERTIES.runTime * 0.5) * 1000), process1);
                 startResultComp.startAfterStartOf(PROPERTIES.runTime  * 1000, process1);
-                terminateAfterTerminationOf(10000, startResultComp);
+                terminateAfterTerminationOf(40000, startResultComp);
 
             }
         };

@@ -47,6 +47,8 @@ public class Application extends ComponentDefinition {
 
     private HashMap<Integer, Long> lookUpSendingTimes = new HashMap<>();
     private ArrayList<TestResult> lookupResult = new ArrayList<>();
+    private ArrayList<Integer> lookedUpKeys = new ArrayList<>();
+
 
     private HashMap<Integer, Long> pingSendingTimes = new HashMap<>();
 
@@ -54,32 +56,12 @@ public class Application extends ComponentDefinition {
 
     private ArrayList<ArrayList<RingController>> ringController = new ArrayList<>();
     private int[] nodeIndexes;
-    //private int replications;
+
     private Stats stats = new Stats();
 
     private RunProperties PROPERTIES;
 
-    //=======       Behaviour variables         ===============
-
     private Random rand = new Random();
-//    private int NUMBER_OF_ADDS = 100;
-//    private int NUMBER_OF_LOOKUPS = 100;
-//    private int PERIODIC_PING_TIMEOUT = 2000;
-
-
-
-    //========      Which strategy to choose rings..   ========
-
-//    private String testStrategy = "nFirst";
-//    private int n = 1;
-//
-//
-//    private boolean randomChoose = false;  //Not tested yet....
-//    private boolean bestChoose = false;
-//    private boolean worstChoose = true;
-
-
-    //=========================================================
 
     public Application(ApplicationInit init) {
         self = init.selfAddress;
@@ -365,11 +347,15 @@ public class Application extends ComponentDefinition {
 
                 Long total = external1 + internal + external2;
 
+
+
                 stats.LookUpResponses++;
                 if(msg.answer == LookUpResponse.LookUp.InStore || msg.answer == LookUpResponse.LookUp.InReplica) {
-
-                    lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total, receivedTime));
-                    ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
+                    if(!lookedUpKeys.contains(msg.key)) {
+                        lookupResult.add(new TestResult(TestResult.TestType.LOOKUP, self.id, msg.fromRing, msg.counter, msg.key, external1, external2, internal, total, receivedTime));
+                        ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
+                        lookedUpKeys.add(msg.key);
+                    }
                 }
 
             }
