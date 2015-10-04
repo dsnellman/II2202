@@ -222,7 +222,13 @@ public class Chord extends ComponentDefinition {
 
             if(msg.type == TYPE.ADD || msg.type == TYPE.LOOKUP) {
 
-                int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
+                int value = 0;
+                if (PROPERTIES.randomTime){
+                    value = rand.nextInt((PROPERTIES.maxProcessMsgTime - PROPERTIES.minProcessMsgTime) + 1) + PROPERTIES.minProcessMsgTime;
+                } else {
+                    value = PROPERTIES.constantProccessTime;
+                }
+
                 int sleep = value;
                 if(msg.lookupType != LookUp.LookUpTYPE.PING) {
                     //SIMULATING INTERNAL LATENCY
@@ -405,7 +411,12 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
+            int value = 0;
+            if (PROPERTIES.randomTime){
+                value = rand.nextInt((PROPERTIES.maxProcessMsgTime - PROPERTIES.minProcessMsgTime) + 1) + PROPERTIES.minProcessMsgTime;
+            } else {
+                value = PROPERTIES.constantProccessTime;
+            }
             processingAppMsgAdd.put(processedMsgAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgAdd.entrySet().iterator();
@@ -462,7 +473,12 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
+            int value = 0;
+            if (PROPERTIES.randomTime){
+                value = rand.nextInt((PROPERTIES.maxProcessMsgTime - PROPERTIES.minProcessMsgTime) + 1) + PROPERTIES.minProcessMsgTime;
+            } else {
+                value = PROPERTIES.constantProccessTime;
+            }
             processingAppMsgRingAdd.put(processedMsgRingAddCounter, value);
             int sleep = 0;
             Iterator it = processingAppMsgRingAdd.entrySet().iterator();
@@ -540,7 +556,13 @@ public class Chord extends ComponentDefinition {
             if(msg.startInnerLatency == 0L)
                 msg.startInnerLatency = System.currentTimeMillis();
 
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
+            int value = 0;
+            if (PROPERTIES.randomTime){
+                value = rand.nextInt((PROPERTIES.maxProcessMsgTime - PROPERTIES.minProcessMsgTime) + 1) + PROPERTIES.minProcessMsgTime;
+            } else {
+                value = PROPERTIES.constantProccessTime;
+            }
+
             int sleep = value;
 
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
@@ -616,7 +638,13 @@ public class Chord extends ComponentDefinition {
 
 
             //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
+            int value = 0;
+            if (PROPERTIES.randomTime){
+                value = rand.nextInt((PROPERTIES.maxProcessMsgTime - PROPERTIES.minProcessMsgTime) + 1) + PROPERTIES.minProcessMsgTime;
+            } else {
+                value = PROPERTIES.constantProccessTime;
+            }
+
             int sleep = value;
             if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
                 //SIMULATING INTERNAL LATENCY

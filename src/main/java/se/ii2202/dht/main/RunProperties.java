@@ -15,7 +15,13 @@ public class RunProperties {
 
     public final int replications = 1; //Not lower than 1
 
+
+    //Time for handles to process work
+    public final boolean randomTime = true;
+    public final int constantProccessTime = 10;
     public final int maxProcessMsgTime = 10;
+    public final int minProcessMsgTime = 5;
+
 
     //Operations for each app
     public int NUMBER_OF_ADDS = 100;
@@ -30,13 +36,11 @@ public class RunProperties {
     public int n = 1;
 
     public boolean randomChoose = false;  //Not tested yet....
-    public boolean bestChoose = true;
+    public boolean bestChoose = false;
     public boolean worstChoose = true;
 
-    public boolean lookUpToAll = false;
+    public boolean lookUpToAll = true;
     public int nLookUp = 1; //Not bigger than replications
-
-
 
     public ArrayList<String> RingCities = new ArrayList<>(Arrays.asList("FRAN", "CALI", "SDNY", "SPLO", "TKYO"));
     public ArrayList<String> allCities = new ArrayList<>(Arrays.asList("FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"));
