@@ -13,7 +13,7 @@ public class RunProperties {
     public final int nRings = 5; //Number of rings
     public final int nApps = 540; //Number of applications
 
-    public final int replications = 3; //Not lower than 1
+    public final int replications = 1; //Not lower than 1
 
     public final int maxProcessMsgTime = 10;
 
