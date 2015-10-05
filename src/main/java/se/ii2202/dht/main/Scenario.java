@@ -29,19 +29,6 @@ public class Scenario {
 
     private static RunProperties PROPERTIES;
 
-    // SIMULATION VARIABLES
-
-//    private final static int M = 14; //Number of bits in identifier
-//    private final static int nNode = 500; //Number of nodes in each ring
-//    private final static int nRings = 5; //Number of rings
-//    private final static int nApps = 540; //Number of applications
-//    private final static int runTime = 1400; //In seconds
-//    private static int replications = 1; //Not lower than 1
-
-//    private static ArrayList<String> RingCities = new ArrayList<>(Arrays.asList("FRAN", "CALI", "SDNY", "SPLO", "TKYO"));
-//    private static String[] allCities = new String[]{"FRAN", "CALI", "SDNY", "SPLO", "TKYO", "VGNI", "SNGP", "ORGN", "IRLD"};
-
-
     private static String filename;
 
     // ********************
@@ -94,11 +81,13 @@ public class Scenario {
         File files = new File("./src/main/resources/tests/");
         int highest = 0;
         for(File f : files.listFiles()){
-            String[] split = f.getName().split("-");
-            String number = split[0].substring(4);
-            int x = Integer.parseInt(number);
-            if(x > highest)
-                highest = x;
+            if(f.isFile() && f.getName().substring(f.getName().length()-3).equals("txt")) {
+                String[] split = f.getName().split("-");
+                String number = split[0].substring(4);
+                int x = Integer.parseInt(number);
+                if (x > highest)
+                    highest = x;
+            }
         }
         highest++;
 
@@ -240,21 +229,31 @@ public class Scenario {
     };
 
 
-    static Operation1<StartAggregatorCmd, Integer> startResult = new Operation1<StartAggregatorCmd, Integer>() {
+    static Operation1<StartNodeCmd, Integer> startResult = new Operation1<StartNodeCmd, Integer>() {
 
         @Override
-        public StartAggregatorCmd generate(final Integer nodeId) {
-            return new StartAggregatorCmd<ResultComp, Address>() {
+        public StartNodeCmd generate(final Integer nodeId) {
+            return new StartNodeCmd<ResultComp, Address>() {
                 private NodeInfo aggregatorAddress = new NodeInfo();
+
+                @Override
+                public Integer getNodeId() {
+                    return nodeId;
+                }
+
+                @Override
+                public int bootstrapSize() {
+                    return 0;
+                }
 
                 @Override
                 public Class getNodeComponentDefinition() {
                     return ResultComp.class;
                 }
 
-                @Override
-                public ResultComp.ResultInit getNodeComponentInit() {
-                    aggregatorAddress.address = new BasicAddress(localHost, 12340, nodeId);;
+                public ResultComp.ResultInit getNodeComponentInit(Address aggregatorServer, Set<Address> bootstrapNodes) {
+                    aggregatorAddress.address = new BasicAddress(localHost, 12340, nodeId);
+                    aggregatorAddress.id = nodeId;
                     return new ResultComp.ResultInit(aggregatorAddress, allApps, filename);
                 }
 
@@ -300,6 +299,7 @@ public class Scenario {
                 processApp.startAfterStartOf((long) ((PROPERTIES.runTime * 0.5) * 1000), process1);
                 startResultComp.startAfterStartOf(PROPERTIES.runTime  * 1000, process1);
                 terminateAfterTerminationOf(10000, startResultComp);
+
 
             }
         };

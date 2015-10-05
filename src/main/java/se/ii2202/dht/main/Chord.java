@@ -12,6 +12,8 @@ import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.SchedulePeriodicTimeout;
 import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timer;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.util.*;
 
@@ -31,6 +33,7 @@ public class Chord extends ComponentDefinition {
     private ArrayList<Item> replicaStorage = new ArrayList<>();
     private ArrayList<Item> storage = new ArrayList<>();
 
+    private TimedControler tc;
 
     private int processedMsgAddCounter = 0;
     private HashMap<Integer, Integer> processingAppMsgAdd = new HashMap<>();
@@ -63,6 +66,8 @@ public class Chord extends ComponentDefinition {
         firstNode = init.firstNode;
         PROPERTIES = init.properties;
 
+        tc = init.tcb.registerComponent(self.id, this);
+
         //Init fingers
         fingers.add(new Finger(self.id));
         for (int k = 1; k <= PROPERTIES.M; k++) {
@@ -89,11 +94,6 @@ public class Chord extends ComponentDefinition {
         subscribe(handleLookUp, network);
         subscribe(handleRingLookUp, network);
 
-        subscribe(handleAddTimer, timer);
-        subscribe(handleRingAddTimer, timer);
-        subscribe(handleClosestTimer, timer);
-        subscribe(handleLookUpTimer, timer);
-        subscribe(handleRingLookUpTimer, timer);
         subscribe(handleStabilizerTimer, timer);
 
     }
@@ -101,7 +101,7 @@ public class Chord extends ComponentDefinition {
     private final Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
-
+            tc.advance(Chord.this, 0);
             //log.info("{} | - Starting chord! first: {}", new Object[]{self, firstNode});
 
             scheduleStabilizer();
@@ -127,6 +127,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(Join msg) {
+            tc.advance(Chord.this, 0);
             //log.info("{} | Received join msg from {}", new Object[]{self, msg.getSource()});
 
             NodeInfo s = find_successor(msg.address.id, msg.address, TYPE.JOIN, 0, null, 0, 0, 0L, null);
@@ -142,7 +143,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(JoinResponse msg) {
-
+            tc.advance(Chord.this, 0);
             //log.info("{} => | - Joinresponse reveiced with succ {}", new Object[]{self, msg.succ});
 
             self.succ = msg.succ;
@@ -157,6 +158,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(FindSuccessor msg) {
+            tc.advance(Chord.this, 0);
             //log.info("{} | Received FindSuccessor msg from {}", new Object[]{self, msg.getSource()});
             //log.info("{} (Succ: {}, Pred: {}) => Find successor for id: {} type {}", new Object[]{self, self.succ.id, self.pred.id, msg.id, msg.type});
             NodeInfo succ = find_successor(msg.id, msg.address, msg.type, msg.finger, null, 0, 0, 0L, null);
@@ -171,6 +173,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(FindSuccessorResponse msg) {
+            tc.advance(Chord.this, 0);
             //log.info("{} | Received FindSuccessorResponse msg from {}", new Object[]{self, msg.getSource()});
 
             fingers.get(msg.finger).node = msg.succ;
@@ -205,7 +208,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(ClosestFinger msg) {
-
+            tc.advance(Chord.this, 0);
             //log.info("{} | Received ClosestFinger msg from {}", new Object[]{self, msg.getSource()});
 
             NodeInfo nPrime = closest_finger(msg.id);
@@ -218,78 +221,10 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(ClosestFingerResponse msg) {
+
+            //TODO latency when lookup or add
+            tc.advance(Chord.this, 0);
             //log.info("{} | Received ClosestFingerResponse msg from {}", new Object[]{self, msg.getSource()});
-
-            if(msg.type == TYPE.ADD || msg.type == TYPE.LOOKUP) {
-
-                int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
-                int sleep = value;
-                if(msg.lookupType != LookUp.LookUpTYPE.PING) {
-                    //SIMULATING INTERNAL LATENCY
-
-                    processingAppMsgClosest.put(processedMsgClosestCounter, value);
-                    sleep = 0;
-                }
-
-                Iterator it = processingAppMsgClosest.entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry pair = (Map.Entry) it.next();
-                    sleep += (Integer) pair.getValue();
-                }
-
-                //log.info("{} simulating inner latency for ring add id: {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, sleep, processingAppMsgClosest.size(), processedMsgClosestCounter});
-
-                ScheduleTimeout spt = new ScheduleTimeout(sleep);
-                InnerLatencyTimerClosest sc = new InnerLatencyTimerClosest(spt, processedMsgClosestCounter, msg);
-                spt.setTimeoutEvent(sc);
-                trigger(spt, timer);
-                processedMsgClosestCounter++;
-
-
-            } else {
-
-
-                NodeInfo nPrime = msg.foundedAddress;
-                //log.info("{} reveive closestfinger response with returnaddress: {}", new Object[]{self, msg.returnAddress});
-
-                while (!between(msg.id, nPrime.id, nPrime.succ.id, false, true)) {
-
-                    msg.msgCounter++;
-                    //nPrime = closest_finger(msg.id);
-                    //if(msg.lookupID != 0)
-                    //log.info("{} => sending closest, counter {} nprime {} key {}", new Object[]{self, msg.lookUpCounter, nPrime, msg.id});
-                    trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
-                    return;
-                }
-
-                if (msg.type == TYPE.JOIN) {
-                    trigger(new JoinResponse(self, msg.returnAddress, nPrime.succ), network);
-                } else if (msg.type == TYPE.ADD) {
-                    msg.msgCounter++;
-                    trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
-                } else if (msg.type == TYPE.LOOKUP) {
-                    msg.msgCounter++;
-                    trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
-                } else if (msg.type == TYPE.OTHERS) {
-                    trigger(new UpdateFingerTable(self, nPrime, self, msg.finger), network);
-                } else {
-                    trigger(new FindSuccessorResponse(self, msg.returnAddress, msg.type, nPrime.succ, msg.finger), network);
-                }
-            }
-        }
-
-    };
-
-    private final Handler<InnerLatencyTimerClosest> handleClosestTimer = new Handler<InnerLatencyTimerClosest>() {
-
-        @Override
-        public void handle(InnerLatencyTimerClosest timer) {
-            ClosestFingerResponse msg = timer.closestFingerResponse;
-
-            if(msg.lookupType != LookUp.LookUpTYPE.PING)
-                processingAppMsgClosest.remove(timer.msgId);
-
-
 
             NodeInfo nPrime = msg.foundedAddress;
             //log.info("{} reveive closestfinger response with returnaddress: {}", new Object[]{self, msg.returnAddress});
@@ -303,21 +238,31 @@ public class Chord extends ComponentDefinition {
                 trigger(new ClosestFinger(self, nPrime, msg.returnAddress, msg.type, msg.id, msg.foundedAddress, msg.finger, msg.item, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
                 return;
             }
-            msg.msgCounter++;
-            if (msg.type == TYPE.ADD) {
+
+            if (msg.type == TYPE.JOIN) {
+                trigger(new JoinResponse(self, msg.returnAddress, nPrime.succ), network);
+            } else if (msg.type == TYPE.ADD) {
+                msg.msgCounter++;
                 trigger(new RingAdd(self, nPrime.succ, msg.type, msg.item, msg.lookupID, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
             } else if (msg.type == TYPE.LOOKUP) {
+                msg.msgCounter++;
                 trigger(new RingLookUp(self, nPrime.succ, msg.returnAddress, msg.id, nPrime, msg.lookupID, msg.msgCounter, msg.lookupType, msg.startInnerLatency), network);
+            } else if (msg.type == TYPE.OTHERS) {
+                trigger(new UpdateFingerTable(self, nPrime, self, msg.finger), network);
+            } else {
+                trigger(new FindSuccessorResponse(self, msg.returnAddress, msg.type, nPrime.succ, msg.finger), network);
             }
 
         }
+
     };
 
     private final Handler<Predecessor> handlePredecessor = new Handler<Predecessor>() {
 
         @Override
         public void handle(Predecessor msg) {
-            //log.info("{} | Received Predecessor msg from {}", new Object[]{self, msg.getSource()});
+            tc.advance(Chord.this, 0);
+            //log.info("{} | Received Predecessor msg from {}, time: {}", new Object[]{self, msg.getSource(), System.currentTimeMillis()});
 
             trigger(new PredecessorResponse(self, msg.node, msg.type, self.pred), network);
             if(msg.type == TYPE.INIT){
@@ -331,7 +276,8 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(PredecessorResponse msg) {
-            //log.info("{} | Received PredecessorResponse msg from {}", new Object[]{self, msg.getSource()});
+            tc.advance(Chord.this, 0);
+            //log.info("{} | Received PredecessorResponse msg from {}, time: {}", new Object[]{self, msg.getSource(), System.currentTimeMillis()});
             //log.info("{} (Succ: {}, Pred: {}) => Received Predecessorresponse: {}", new Object[]{self, self.succ.id, self.pred.id, msg.node});
             if(msg.type == TYPE.INIT){
                 self.pred = msg.node;
@@ -373,6 +319,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(UpdateFingerTable msg) {
+            tc.advance(Chord.this, 0);
             //log.info("Update finger table");
             if (between(msg.node.id, self.id, fingers.get(msg.i).node.id, true, false)) {
                 fingers.get(msg.i).node = msg.node;
@@ -386,6 +333,7 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(Notify msg) {
+            tc.advance(Chord.this, 0);
             //log.info("{} | Notify", new Object[]{self});
             if(self.pred == null || between(msg.node.id, self.pred.id, self.id, false ,false)){
                 self.pred = msg.node;
@@ -398,52 +346,14 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(Add msg) {
-
+            tc.advance(Chord.this, PROPERTIES.constantProccessTime);
 
             if (msg.startInnerLatency == 0L)
                 msg.startInnerLatency = System.currentTimeMillis();
 
-
-            //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
-            processingAppMsgAdd.put(processedMsgAddCounter, value);
-            int sleep = 0;
-            Iterator it = processingAppMsgAdd.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                sleep += (Integer) pair.getValue();
-            }
-            //log.info("{} simulating inner latency for add id: {} value }{} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgAdd.size(), processedMsgAddCounter});
-
-            ScheduleTimeout spt = new ScheduleTimeout(sleep);
-            InnerLatencyTimerAdd sc = new InnerLatencyTimerAdd(spt, processedMsgAddCounter, msg);
-            spt.setTimeoutEvent(sc);
-            trigger(spt, timer);
-            processedMsgAddCounter++;
-        }
-    };
-
-    private final Handler<InnerLatencyTimerAdd> handleAddTimer = new Handler<InnerLatencyTimerAdd>() {
-
-        @Override
-        public void handle(InnerLatencyTimerAdd timer) {
-
-            processingAppMsgAdd.remove(timer.msgId);
-
-            Add msg = timer.add;
-
             if (between(msg.item.key, self.pred.id, self.id, false, true)) {
-                if(msg.type == TYPE.ADD){
-                    storage.add(msg.item);
-                    trigger(new AddResponse(self, msg.returnAddress, msg.item.key, msg.id, 1,msg.msgCounter, msg.startInnerLatency, System.currentTimeMillis()), network);
-
-
-                }
-                else if(msg.type == TYPE.ADDREPLICA){
-                    replicaStorage.add(msg.item);
-                    //log.info("{} => Add item {} in replica", new Object[]{self, msg.item});
-                    trigger(new AddResponse(self, msg.returnAddress, msg.item.key, msg.id, 2,msg.msgCounter, msg.startInnerLatency, System.currentTimeMillis()), network);
-                }
+                storage.add(msg.item);
+                trigger(new AddResponse(self, msg.returnAddress, msg.item.key, msg.id, 1,msg.msgCounter, msg.startInnerLatency, System.currentTimeMillis()), network);
             } else {
                 msg.msgCounter++;
                 NodeInfo s = find_successor(msg.item.key, msg.returnAddress, msg.type, 0, msg.item, msg.id,msg.msgCounter, msg.startInnerLatency, null);
@@ -451,68 +361,21 @@ public class Chord extends ComponentDefinition {
                     trigger(new RingAdd(self, s, msg.type, msg.item, msg.id, msg.msgCounter, msg.returnAddress, msg.startInnerLatency), network);
                 }
             }
-
         }
     };
+
 
     private final Handler<RingAdd> handleRingAdd = new Handler<RingAdd>() {
 
         @Override
         public void handle(RingAdd msg) {
-
-
-            //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) + 1;
-            processingAppMsgRingAdd.put(processedMsgRingAddCounter, value);
-            int sleep = 0;
-            Iterator it = processingAppMsgRingAdd.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                sleep += (Integer) pair.getValue();
-            }
-            //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingAdd.size(), processedMsgRingAddCounter});
-
-            ScheduleTimeout spt = new ScheduleTimeout(sleep);
-            InnerLatencyTimerRingAdd sc = new InnerLatencyTimerRingAdd(spt, processedMsgRingAddCounter, msg);
-            spt.setTimeoutEvent(sc);
-            trigger(spt, timer);
-            processedMsgRingAddCounter++;
-
-        }
-    };
-
-    private final Handler<InnerLatencyTimerRingAdd> handleRingAddTimer = new Handler<InnerLatencyTimerRingAdd>() {
-
-        @Override
-        public void handle(InnerLatencyTimerRingAdd timer) {
-            //log.info("{} => RingAdd item {}", new Object[]{self, msg.item});
-            processingAppMsgRingAdd.remove(timer.msgId);
-
-            RingAdd msg = timer.ringadd;
+            tc.advance(Chord.this, PROPERTIES.constantProccessTime);
 
             if (between(msg.item.key, self.pred.id, self.id, false, true)) {
                 if(msg.type == TYPE.ADD){
                     storage.add(msg.item);
                     trigger(new AddResponse(self, msg.returnAddress, msg.item.key, msg.id, 1, msg.msgCounter, msg.startInnerLatency, System.currentTimeMillis()), network);
 
-
-                    //log.info("{} => Add item {}", new Object[]{self, msg.item});
-                    /*if(!replications.isEmpty()){
-                        for(Integer i : replications){
-                            int ring  = 0;
-                            if(i == 0){
-                                ring = rand.nextInt(nRings);
-                            } else {
-                                ring = i + self.ring;
-                                if(ring > nRings)
-                                    ring = 0;
-                            }
-
-
-                            if(ringNodes[ring] != null)
-                                trigger(new Add(self, ringNodes[ring], TYPE.ADDREPLICA, msg.item, ringNodes, msg.id, msg.returnAddress, msg.startInnerLatency), network);
-                        }
-                    }*/
                 }
                 else if(msg.type == TYPE.ADDREPLICA){
                     replicaStorage.add(msg.item);
@@ -536,50 +399,14 @@ public class Chord extends ComponentDefinition {
         @Override
         public void handle(LookUp msg) {
 
-
-            if(msg.startInnerLatency == 0L)
-                msg.startInnerLatency = System.currentTimeMillis();
-
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
-            int sleep = value;
-
-            if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
-
-                //SIMULATING INTERNAL LATENCY
-                sleep = 0;
-                processingAppMsgLookUp.put(processedMsgLookUpCounter, value);
-            }
-
-
-            Iterator it = processingAppMsgLookUp.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                sleep += (Integer) pair.getValue();
-            }
-
-            //log.info("{} got lookup type: {} , value {} sleep {}, n {}", new Object[]{self, msg.type, value, sleep, processingAppMsgLookUp.size()});
-
-
-            ScheduleTimeout spt = new ScheduleTimeout(sleep);
-            InnerLatencyTimerLookUp sc = new InnerLatencyTimerLookUp(spt, processedMsgLookUpCounter, msg);
-            spt.setTimeoutEvent(sc);
-            trigger(spt, timer);
-            processedMsgLookUpCounter++;
-
-        }
-    };
-
-    private final Handler<InnerLatencyTimerLookUp> handleLookUpTimer = new Handler<InnerLatencyTimerLookUp>() {
-
-        @Override
-        public void handle(InnerLatencyTimerLookUp timer) {
-
-            LookUp msg = timer.lookup;
             if(msg.type == LookUp.LookUpTYPE.LOOKUP)
-                processingAppMsgLookUp.remove(timer.msgId);
-
+                tc.advance(Chord.this, PROPERTIES.constantProccessTime);
+            else
+                tc.advance(Chord.this, 0);
             //log.info("{}: Received lookup msg for key {} with counter : {} - Time: {}, returnaddress: {}", new Object[]{self,msg.key, msg.counter, System.nanoTime(), msg.returnAddress});
 
+            if (msg.startInnerLatency == 0L)
+                msg.startInnerLatency = System.currentTimeMillis();
 
             if (between(msg.key, self.pred.id, self.id, false, true)) {
                 //log.info("{}: found right node {} with counter : {}", new Object[]{self,msg.key, msg.counter});
@@ -613,45 +440,10 @@ public class Chord extends ComponentDefinition {
 
         @Override
         public void handle(RingLookUp msg) {
-
-
-            //SIMULATING INTERNAL LATENCY
-            int value = rand.nextInt(PROPERTIES.maxProcessMsgTime) +1;
-            int sleep = value;
-            if(msg.type == LookUp.LookUpTYPE.LOOKUP) {
-                //SIMULATING INTERNAL LATENCY
-                sleep = 0;
-                processingAppMsgRingLookUp.put(processedMsgRingLookUpCounter, value);
-            }
-
-            Iterator it = processingAppMsgRingLookUp.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                sleep += (Integer) pair.getValue();
-            }
-
-//            log.info("{} got lookup type: {} , value {} sleep {}, n {}", new Object[]{self, msg.type, value, sleep, processingAppMsgLookUp.size()});
-            //log.info("{} simulating inner latency for ring add id: {} value {} sleep: {}, msg: {} counter {}", new Object[]{self, msg.id, value, sleep, processingAppMsgRingLookUp.size(), processedMsgRingLookUpCounter});
-
-            ScheduleTimeout spt = new ScheduleTimeout(sleep);
-            InnerLatencyTimerRingLookUp sc = new InnerLatencyTimerRingLookUp(spt, processedMsgRingLookUpCounter, msg);
-            spt.setTimeoutEvent(sc);
-            trigger(spt, timer);
-            processedMsgRingLookUpCounter++;
-
-        }
-    };
-
-    private final Handler<InnerLatencyTimerRingLookUp> handleRingLookUpTimer = new Handler<InnerLatencyTimerRingLookUp>() {
-
-        @Override
-        public void handle(InnerLatencyTimerRingLookUp timer) {
-
-            RingLookUp msg = timer.lookup;
             if(msg.type == LookUp.LookUpTYPE.LOOKUP)
-                processingAppMsgRingLookUp.remove(timer.msgId);
-
-
+                tc.advance(Chord.this, PROPERTIES.constantProccessTime);
+            else
+                tc.advance(Chord.this, 0);
 
             //log.info("{}: Received ringlookup msg for key {} with counter : {}, time: {}, returnaddress; {}", new Object[]{self,msg.key, msg.counter, System.nanoTime(), msg.returnAddress});
             if (between(msg.key, self.pred.id, self.id, false, true)) {
@@ -738,11 +530,10 @@ public class Chord extends ComponentDefinition {
         return self.succ;
     }
 
-
-    private Long lastTime;
     private final Handler<StabilizerTimer> handleStabilizerTimer = new Handler<StabilizerTimer>() {
         @Override
         public void handle(StabilizerTimer event) {
+            tc.advance(Chord.this, 0);
             //log.info("{} | Stabilizing!", new Object[]{self});
             //print_node();
             trigger(new Predecessor(self, self.succ, TYPE.STABILIZE, self), network);
@@ -798,14 +589,16 @@ public class Chord extends ComponentDefinition {
 
     public static class ChordInit extends Init<Chord> {
 
+        public TimedControlerBuilder tcb;
         public NodeInfo selfAddress;
         public NodeInfo firstNode;
         public RunProperties properties;
 
-        public ChordInit(NodeInfo self, NodeInfo firstNode, RunProperties properties) {
+        public ChordInit(NodeInfo self, NodeInfo firstNode, RunProperties properties, TimedControlerBuilder tcb) {
             this.selfAddress = self;
             this.firstNode = firstNode;
             this.properties = properties;
+            this.tcb = tcb;
         }
 
 

@@ -12,6 +12,9 @@ import se.sics.kompics.Handler;
 import se.sics.kompics.Init;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
+import se.sics.p2ptoolbox.simulator.timed.api.Timed;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.util.ArrayList;
 
@@ -22,20 +25,22 @@ public class DHT extends ComponentDefinition {
     private Positive<Timer> timer = requires(Timer.class);
     private Positive<Network> network = requires(Network.class);
 
-    private final NodeInfo selfAddress;
+    private TimedControler tc;
+
+    private final NodeInfo self;
     private final NodeInfo firstNode;
 
     private final Component chord;
 
     public DHT(DhtInit init){
-        this.selfAddress = init.selfAddress;
+        this.self = init.selfAddress;
         this.firstNode = init.firstNode;
 
-
+        tc = init.tcb.registerComponent(self.id, this);
         subscribe(handleStart, control);
         subscribe(handleStarted, control);
 
-        chord = create(Chord.class, new Chord.ChordInit(selfAddress, firstNode, init.properties));
+        chord = create(Chord.class, new Chord.ChordInit(self, firstNode, init.properties, init.tcb));
         connect(chord.getNegative(Timer.class), timer);
         connect(chord.getNegative(Network.class), network);
 
@@ -44,17 +49,21 @@ public class DHT extends ComponentDefinition {
     private Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
+            tc.advance(DHT.this, 0);
             //log.info("Starting dht for node {}....", new Object[]{selfAddress});
         }
     };
     private Handler<Started> handleStarted = new Handler<Started>() {
         @Override
         public void handle(Started event) {
+            tc.advance(DHT.this, 0);
             //log.info("Starting dht for node {}....", new Object[]{selfAddress});
         }
     };
 
-    public static class DhtInit extends Init<DHT> {
+    public static class DhtInit extends Init<DHT> implements Timed{
+
+        public TimedControlerBuilder tcb;
         public NodeInfo selfAddress;
         public NodeInfo firstNode;
         public RunProperties properties;
@@ -65,6 +74,10 @@ public class DHT extends ComponentDefinition {
             this.properties = properties;
         }
 
+        @Override
+        public void set(TimedControlerBuilder tcb) {
+            this.tcb = tcb;
+        }
     }
 
 }

@@ -7,6 +7,9 @@ import se.ii2202.dht.object.NodeInfo;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
+import se.sics.p2ptoolbox.simulator.timed.api.Timed;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.util.ArrayList;
 
@@ -17,20 +20,24 @@ public class App extends ComponentDefinition {
     private Positive<Timer> timer = requires(Timer.class);
     private Positive<Network> network = requires(Network.class);
 
-
+    private TimedControler tc;
 
     private final Component Application;
     private final Component latencyLayer;
 
 
     public App(AppInit init){
-        subscribe(handleStart, control);
 
-        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.properties, init.city, init.latency));
+        tc = init.tcb.registerComponent(init.app.id, this);
+
+        subscribe(handleStart, control);
+        subscribe(handleStarted, control);
+
+        latencyLayer = create(LatencyLayer.class, new LatencyLayer.LatencyInit(init.app, init.properties, init.city, init.latency, init.tcb));
         connect(latencyLayer.getNegative(Timer.class), timer);
         connect(latencyLayer.getNegative(Network.class), network);
 
-        Application = create(Application.class, new Application.ApplicationInit(init.app, init.properties, init.ringNodes, init.latency));
+        Application = create(Application.class, new Application.ApplicationInit(init.app, init.properties, init.ringNodes, init.latency, init.tcb));
         connect(Application.getNegative(Timer.class), timer);
         connect(Application.getNegative(Network.class), latencyLayer.getPositive(Network.class));
 
@@ -40,12 +47,22 @@ public class App extends ComponentDefinition {
     private Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
+            tc.advance(App.this, 0);
             //log.info("Starting app....", new Object[]{});
         }
     };
 
-    public static class AppInit extends Init<App> {
+    private Handler<Started> handleStarted = new Handler<Started>() {
+        @Override
+        public void handle(Started event) {
+            tc.advance(App.this, 0);
+            //log.info("Starting app....", new Object[]{});
+        }
+    };
 
+    public static class AppInit extends Init<App> implements Timed {
+
+        public TimedControlerBuilder tcb;
         public NodeInfo app;
         public String city;
         public ArrayList<LatencyContainer> latency;
@@ -58,6 +75,12 @@ public class App extends ComponentDefinition {
             this.latency = latency;
             this.city = city;
             this.ringNodes = ringNodes;
+
+        }
+
+        @Override
+        public void set(TimedControlerBuilder tcb) {
+            this.tcb = tcb;
         }
 
     }

@@ -10,6 +10,9 @@ import se.ii2202.dht.object.TestResult;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.Timer;
+import se.sics.p2ptoolbox.simulator.timed.api.Timed;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -22,28 +25,36 @@ public class ResultComp extends ComponentDefinition {
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
 
-    private NodeInfo selfAddress;
+    private NodeInfo self;
     private NodeInfo[] apps;
     private String filename = "";
 
+    private TimedControler tc;
+
     public ResultComp(ResultInit init) {
-        this.selfAddress = init.selfAddress;
+        this.self = init.selfAddress;
         this.apps = init.apps;
         this.filename = init.filename;
+
+        tc = init.tcb.registerComponent(self.id, this);
 
         subscribe(handleStart, control);
         subscribe(handleResponse, network);
 
     }
 
+
+
+
     private Handler<Start> handleStart = new Handler<Start>() {
 
         @Override
         public void handle(Start event) {
-            log.info("time: {} | {} starting... with {} apps", new Object[]{System.currentTimeMillis(),selfAddress, apps.length});
+            tc.advance(ResultComp.this, 0);
+            log.info("time: {} | {} starting... with {} apps", new Object[]{System.currentTimeMillis(),self, apps.length});
 
             for(int i = 0; i < apps.length; i++){
-                trigger(new ResultRequest(selfAddress, apps[i], selfAddress), network);
+                trigger(new ResultRequest(self, apps[i], self), network);
             }
         }
 
@@ -57,7 +68,7 @@ public class ResultComp extends ComponentDefinition {
 
         @Override
         public void handle(ResultResponse msg) {
-
+            tc.advance(ResultComp.this, 0);
 
             counter++;
 
@@ -109,8 +120,9 @@ public class ResultComp extends ComponentDefinition {
 
 
 
-    public static class ResultInit extends Init<ResultComp> {
+    public static class ResultInit extends Init<ResultComp> implements Timed {
 
+        public TimedControlerBuilder tcb;
         public final NodeInfo selfAddress;
         public NodeInfo[] apps;
         public String filename;
@@ -119,6 +131,11 @@ public class ResultComp extends ComponentDefinition {
             this.selfAddress = selfAddress;
             this.apps = apps;
             this.filename = filename;
+        }
+
+        @Override
+        public void set(TimedControlerBuilder tcb) {
+            this.tcb = tcb;
         }
     }
 }

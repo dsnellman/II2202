@@ -11,8 +11,8 @@ public class Executor {
 
         SimulationScenario scenario = Scenario.start();
         scenario.setSeed(1234);
-        //scenario.simulate(TimedLauncher.class);
-        scenario.simulate(LauncherComp.class);
+        scenario.simulate(TimedLauncher.class);
+        //scenario.simulate(LauncherComp.class);
 
     }
 

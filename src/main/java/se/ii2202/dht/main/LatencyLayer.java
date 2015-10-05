@@ -14,6 +14,8 @@ import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.SchedulePeriodicTimeout;
 import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timer;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +28,7 @@ public class LatencyLayer extends ComponentDefinition {
     private Negative<Network> local = provides(Network.class);
 
     private RunProperties PROPERTIES;
-    public NodeInfo selfAddress;
+    public NodeInfo self;
     public ArrayList<LatencyContainer> latency;
 
     public String city;
@@ -38,12 +40,17 @@ public class LatencyLayer extends ComponentDefinition {
     public Integer[] currentOutgoingLatencies;
     public Integer[] currentIncomingLatencies;
 
+    private TimedControler tc;
+
     public LatencyLayer(LatencyInit init) {
 
-        selfAddress = init.selfAddress;
+        self = init.selfAddress;
         latency = init.latency;
         city = init.city;
         PROPERTIES = init.properties;
+
+        tc = init.tcb.registerComponent(self.id, this);
+
 
         currentOutgoingLatencies = new Integer[PROPERTIES.nRings];
         currentIncomingLatencies = new Integer[PROPERTIES.nRings];
@@ -59,7 +66,8 @@ public class LatencyLayer extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{selfAddress.id, city, PROPERTIES.RingCities.toString()});
+            tc.advance(LatencyLayer.this, 0);
+            //log.info("Starting app with id: {} and latency layer with city {}, {}", new Object[]{self.id, city, PROPERTIES.RingCities.toString()});
             SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(0, 1000);
             PeriodicLatencyUpdateTimer sc = new PeriodicLatencyUpdateTimer(spt);
             spt.setTimeoutEvent(sc);
@@ -75,7 +83,7 @@ public class LatencyLayer extends ComponentDefinition {
 
         @Override
         public void handle(AppMessage<Object> event) {
-
+            tc.advance(LatencyLayer.this, 0);
             //log.info("{}: sending outgoing msg to app... from ring {} to ring {}, type {}", new Object[]{selfAddress, event.fromRing, event.toRing, event.getClass()});
 
             if(event instanceof ResultRequest){
@@ -104,6 +112,7 @@ public class LatencyLayer extends ComponentDefinition {
 
         @Override
         public void handle(AppMessage<Object> event) {
+            tc.advance(LatencyLayer.this, 0);
             //log.info("{}: recevied incomnig app msg... from ring {} to ring {} type: {}", new Object[]{selfAddress, event.fromRing, event.toRing, event.getClass()});
 
             if(event instanceof ResultResponse){
@@ -131,7 +140,7 @@ public class LatencyLayer extends ComponentDefinition {
     private Handler<LatencyTimer> handleLatencyTimer = new Handler<LatencyTimer>() {
 
         public void handle(LatencyTimer event){
-
+            tc.advance(LatencyLayer.this, 0);
             if(event.type == 1)
                 trigger(event.msg, network);
             else
@@ -143,6 +152,7 @@ public class LatencyLayer extends ComponentDefinition {
     private Handler<PeriodicLatencyUpdateTimer> handleUpdateLatencyTimer = new Handler<PeriodicLatencyUpdateTimer>() {
 
         public void handle(PeriodicLatencyUpdateTimer event) {
+            tc.advance(LatencyLayer.this, 0);
             updateCounter++;
             for(int i = 0; i < PROPERTIES.nRings; i++){
                 int index;
@@ -170,16 +180,18 @@ public class LatencyLayer extends ComponentDefinition {
 
     public static class LatencyInit extends Init<LatencyLayer> {
 
+        public TimedControlerBuilder tcb;
         public NodeInfo selfAddress;
         public ArrayList<LatencyContainer> latency;
         public String city;
         public RunProperties properties;
 
-        public LatencyInit(NodeInfo selfAddress,RunProperties properties, String city, ArrayList<LatencyContainer> latency){
+        public LatencyInit(NodeInfo selfAddress,RunProperties properties, String city, ArrayList<LatencyContainer> latency, TimedControlerBuilder tcb){
             this.selfAddress = selfAddress;
             this.latency = latency;
             this.properties =properties;
             this.city = city;
+            this.tcb = tcb;
 
         }
 

@@ -41,9 +41,6 @@ public class LatencyLists {
 
     public LatencyLists(int lines){
 
-        log.info("Start reading files..");
-
-
 
         File file = new File("./src/main/resources/latencies/");
 
@@ -74,7 +71,7 @@ public class LatencyLists {
 
                 latencies.add(latency);
 
-                log.info("{} , {}, size {}", new Object[]{cities[0], cities[1], latency.latencies.size()});
+                //log.info("{} , {}, size {}", new Object[]{cities[0], cities[1], latency.latencies.size()});
             }
 
         }

@@ -13,6 +13,8 @@ import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.SchedulePeriodicTimeout;
 import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timer;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControler;
+import se.sics.p2ptoolbox.simulator.timed.api.TimedControlerBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -58,32 +60,16 @@ public class Application extends ComponentDefinition {
 
     private RunProperties PROPERTIES;
 
-    //=======       Behaviour variables         ===============
+    private TimedControler tc;
 
     private Random rand = new Random();
-//    private int NUMBER_OF_ADDS = 100;
-//    private int NUMBER_OF_LOOKUPS = 100;
-//    private int PERIODIC_PING_TIMEOUT = 2000;
-
-
-
-    //========      Which strategy to choose rings..   ========
-
-//    private String testStrategy = "nFirst";
-//    private int n = 1;
-//
-//
-//    private boolean randomChoose = false;  //Not tested yet....
-//    private boolean bestChoose = false;
-//    private boolean worstChoose = true;
-
-
-    //=========================================================
 
     public Application(ApplicationInit init) {
         self = init.selfAddress;
         PROPERTIES = init.properties;
         ringNodes = init.ringNodes;
+
+        tc = init.tcb.registerComponent(self.id, this);
 
         for(int i = 0; i < PROPERTIES.nRings; i++){
             ringController.add(new ArrayList<>());
@@ -105,6 +91,7 @@ public class Application extends ComponentDefinition {
     private Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
+            tc.advance(Application.this, 0);
             //log.info("Starts app with id: {} ", new Object[]{self.id});
 
             schedulePing();
@@ -155,7 +142,7 @@ public class Application extends ComponentDefinition {
     private Handler<CommandTimer> handleTimer = new Handler<CommandTimer>() {
 
         public void handle(CommandTimer event) {
-
+            tc.advance(Application.this, 0);
             if (event.type == 1) {
 
 
@@ -172,7 +159,7 @@ public class Application extends ComponentDefinition {
     public ArrayList<RingInfo> chooseRing(){
         ArrayList<RingInfo> ringAvg = new ArrayList<>();
 
-        if(PROPERTIES.testStrategy == "nFirst") {
+        if(PROPERTIES.testStrategy_nFirst) {
 
             for (int i = 0; i < PROPERTIES.nRings; i++) {
                 int totalRing = 0;
@@ -278,62 +265,6 @@ public class Application extends ComponentDefinition {
                         lookUpCounter++;
                     }
                 }
-                else {
-
-                    ArrayList<RingInfo> choosedrings = chooseRing();
-                    if(PROPERTIES.bestChoose) {
-                        int counter = 0;
-                        for(int i = 0; i < choosedrings.size(); i++){
-                            if(rings.contains(choosedrings.get(i).ring)){
-                                int index = lookUpCounter % ringNodes.get(choosedrings.get(i).ring).size();
-                                log.info("{} sending lookup for key {} to {}, rings: {}", new Object[]{self, command.key, choosedrings.get(i).ring, rings.toString()});
-                                trigger(new LookUp(self, ringNodes.get(choosedrings.get(i).ring).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
-                                lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
-                                lookUpCounter++;
-                                counter++;
-                                if(counter == PROPERTIES.nLookUp)
-                                    break;
-                            }
-                        }
-                    }
-                    else if(PROPERTIES.worstChoose) {
-                        int counter = 0;
-                        for(int i = PROPERTIES.nRings -1; i >= 0; i--){
-                            if(rings.contains(choosedrings.get(i).ring)){
-                                int index = lookUpCounter % ringNodes.get(choosedrings.get(i).ring).size();
-                                log.info("{} sending lookup for key {} to {}, rings: {}", new Object[]{self, command.key, choosedrings.get(i).ring, rings.toString()});
-                                trigger(new LookUp(self, ringNodes.get(choosedrings.get(i).ring).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
-                                lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
-                                lookUpCounter++;
-                                counter++;
-                                if(counter == PROPERTIES.nLookUp)
-                                    break;
-                            }
-
-
-                        }
-                    }
-                    else if(PROPERTIES.randomChoose){
-                        ArrayList<Integer> temp = new ArrayList<>();
-                        for(int i = 0; i < PROPERTIES.nLookUp; i++){
-
-                            int x = rand.nextInt(PROPERTIES.nRings);
-                            while(temp.contains(x)){
-                                x = rand.nextInt(PROPERTIES.nRings);
-                            }
-
-                            int index = lookUpCounter % ringNodes.get(rings.get(x)).size();
-                            trigger(new LookUp(self, ringNodes.get(rings.get(i)).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
-                            lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());
-                            lookUpCounter++;
-                            temp.add(ringNodes.get(rings.get(i)).get(index).ring);
-
-                        }
-
-                    }
-
-
-                }
             }
 
             runNextCommand();
@@ -343,6 +274,7 @@ public class Application extends ComponentDefinition {
     private Handler<LookUpResponse> handleLookUpResponse = new Handler<LookUpResponse>() {
 
         public void handle(LookUpResponse msg){
+            tc.advance(Application.this, 0);
             Long receivedTime = System.currentTimeMillis();
 
             if(msg.type == LookUp.LookUpTYPE.PING){
@@ -377,6 +309,7 @@ public class Application extends ComponentDefinition {
     private Handler<AddResponse> handleAddResponse = new Handler<AddResponse>() {
 
         public void handle(AddResponse msg){
+            tc.advance(Application.this, 0);
             stats.AddResponses++;
             if(addSendingTimes.containsKey(msg.key)) {
                 SendingInfo si = addSendingTimes.get(msg.key);
@@ -385,6 +318,8 @@ public class Application extends ComponentDefinition {
                 Long internal = msg.endInnerLatency - msg.startInnerLatency;
                 Long external2 = time - msg.endInnerLatency;
                 Long total = external1 + internal + external2;
+
+                log.info("{} got add response: {} ex: {} {}, internal {} , total: {}", new Object[]{self, msg.key, external1, external2, internal, total});
 
                 ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
 
@@ -419,7 +354,7 @@ public class Application extends ComponentDefinition {
     private Handler<PeriodicPingTimer> handlePeriodicPingTimer = new Handler<PeriodicPingTimer>() {
 
         public void handle(PeriodicPingTimer event) {
-
+            tc.advance(Application.this, 0);
             for(int i = 0; i < ringNodes.size(); i++){
                 pingSendingTimes.put(pingCounter, System.currentTimeMillis());
 
@@ -435,7 +370,7 @@ public class Application extends ComponentDefinition {
     private Handler<PeriodicClockTimer> handlePeriodicClockTimer = new Handler<PeriodicClockTimer>() {
 
         public void handle(PeriodicClockTimer event) {
-
+            tc.advance(Application.this, 0);
             log.info("Clock update: {}", System.currentTimeMillis());
 
         }
@@ -459,7 +394,7 @@ public class Application extends ComponentDefinition {
     private Handler<ResultRequest> handleResultRequest = new Handler<ResultRequest>() {
 
         public void handle(ResultRequest event) {
-
+            tc.advance(Application.this, 0);
             log.info("Node: {}", new Object[]{self});
 
             log.info("Stores: {}, LookUps: {}", new Object[]{addResult.size(), lookupResult.size()});
@@ -479,16 +414,18 @@ public class Application extends ComponentDefinition {
 
     public static class ApplicationInit extends Init<Application> {
 
+        public TimedControlerBuilder tcb;
         public NodeInfo selfAddress;
         public RunProperties properties;
         public ArrayList<ArrayList<NodeInfo>> ringNodes;
         public ArrayList<LatencyContainer> latency;
 
-        public ApplicationInit(NodeInfo selfAddress,RunProperties properties, ArrayList<ArrayList<NodeInfo>> ringNodes, ArrayList<LatencyContainer> latency) {
+        public ApplicationInit(NodeInfo selfAddress,RunProperties properties, ArrayList<ArrayList<NodeInfo>> ringNodes, ArrayList<LatencyContainer> latency, TimedControlerBuilder tcb) {
             this.selfAddress = selfAddress;
             this.properties = properties;
             this.ringNodes = ringNodes;
             this.latency = latency;
+            this.tcb = tcb;
         }
 
     }
