@@ -33,6 +33,7 @@ public class DHT extends ComponentDefinition {
 
 
         subscribe(handleStart, control);
+        subscribe(handleStarted, control);
 
         chord = create(Chord.class, new Chord.ChordInit(selfAddress, firstNode, init.properties));
         connect(chord.getNegative(Timer.class), timer);
@@ -43,6 +44,12 @@ public class DHT extends ComponentDefinition {
     private Handler<Start> handleStart = new Handler<Start>() {
         @Override
         public void handle(Start event) {
+            //log.info("Starting dht for node {}....", new Object[]{selfAddress});
+        }
+    };
+    private Handler<Started> handleStarted = new Handler<Started>() {
+        @Override
+        public void handle(Started event) {
             //log.info("Starting dht for node {}....", new Object[]{selfAddress});
         }
     };
