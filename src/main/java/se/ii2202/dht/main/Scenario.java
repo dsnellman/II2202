@@ -25,8 +25,6 @@ public class Scenario {
 
     private static InetAddress localHost;
 
-    private static Random rand = new Random();
-
     private static RunProperties PROPERTIES;
 
     // SIMULATION VARIABLES
@@ -312,7 +310,7 @@ public class Scenario {
                 process1.start();
                 processApp.startAfterStartOf((long) ((PROPERTIES.runTime * 0.5) * 1000), process1);
                 startResultComp.startAfterStartOf(PROPERTIES.runTime  * 1000, process1);
-                terminateAfterTerminationOf(40000, startResultComp);
+                terminateAfterTerminationOf(200000, startResultComp);
 
             }
         };

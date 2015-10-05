@@ -157,7 +157,7 @@ public class Application extends ComponentDefinition {
     public ArrayList<RingInfo> chooseRing(){
         ArrayList<RingInfo> ringAvg = new ArrayList<>();
 
-        if(PROPERTIES.testStrategy == "nFirst") {
+        if(PROPERTIES.testStrategy_nFirst) {
 
             for (int i = 0; i < PROPERTIES.nRings; i++) {
                 int totalRing = 0;
@@ -169,6 +169,11 @@ public class Application extends ComponentDefinition {
                 ringAvg.add(new RingInfo(i, totalRing / PROPERTIES.n));
                 //log.info("{} Ring total {} for all last {} runs to ring {}, avg: {}", new Object[]{self, totalRing, n, i, totalRing / n});
             }
+
+        }
+        else if(PROPERTIES.testStrategy_algorithm1){
+
+
 
         }
 
@@ -241,6 +246,10 @@ public class Application extends ComponentDefinition {
                         storeCounter++;
                     }
 
+                } else if(PROPERTIES.algorithmChoose){
+
+
+
                 }
 
 
@@ -251,12 +260,12 @@ public class Application extends ComponentDefinition {
             else if(command.type == Command.TYPE.LOOKUP){
 
                 ArrayList<Integer> rings = keyPlacedInRing.get(command.key);
-
+                int index = self.id % 10;
                 if(PROPERTIES.lookUpToAll){
 
                     for(int i = 0; i < rings.size(); i++){
                         //log.info("{} sening lookup for key {} to {}", new Object[]{self, command.key, rings.get(i)});
-                        int index = lookUpCounter % ringNodes.get(rings.get(i)).size();
+                        //int index = lookUpCounter % ringNodes.get(rings.get(i)).size();
                         //log.info("{} sening lookup for key {} to ring {} and node {}, index: {}, size {}", new Object[]{self, command.key, i, ringNodes.get(rings.get(i)).get(index), index, ringNodes.get(rings.get(i)).size()});
                         trigger(new LookUp(self, ringNodes.get(rings.get(i)).get(index), command.key, self, lookUpCounter, LookUp.LookUpTYPE.LOOKUP), network);
                         lookUpSendingTimes.put(lookUpCounter, System.currentTimeMillis());

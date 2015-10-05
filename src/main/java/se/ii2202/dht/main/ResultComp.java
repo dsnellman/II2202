@@ -67,8 +67,6 @@ public class ResultComp extends ComponentDefinition {
             //log.info("{} Received response: add {} lookup {}", new Object[]{selfAddress, storeTimes.size(), lookupTimes.size()});
             if(counter == apps.length){
                 try {
-
-
                     printresult();
                 } catch (IOException e) {
                     e.printStackTrace();
