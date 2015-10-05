@@ -36,7 +36,7 @@ public class RunProperties {
     public int n = 1;
     public boolean testStrategy_algorithm1 = false;
 
-    public boolean randomChoose = false;  //Not tested yet....
+    public boolean randomChoose = false;
     public boolean bestChoose = false;
     public boolean worstChoose = true;
     public boolean algorithmChoose = false;

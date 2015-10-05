@@ -5,10 +5,8 @@ import se.sics.kompics.timer.Timeout;
 
 public class CommandTimer extends Timeout {
 
-    public int type;
 
-    public CommandTimer(ScheduleTimeout request, int type) {
+    public CommandTimer(ScheduleTimeout request) {
         super(request);
-        this.type = type;
     }
 }
