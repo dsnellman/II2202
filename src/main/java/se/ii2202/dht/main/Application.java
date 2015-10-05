@@ -212,7 +212,7 @@ public class Application extends ComponentDefinition {
                         //og.info("{} sening add for key {} to {}", new Object[]{self, command.key, rings.get(i).ring});
                         si.list.put(storeCounter, System.currentTimeMillis());
                         int index = storeCounter % ringNodes.get(rings.get(i).ring).size();
-                        log.info("{} sening add for key {} to {} rings {}", new Object[]{self, command.key, rings.get(i).ring, rings.toString()});
+                        //log.info("{} sening add for key {} to {} rings {}", new Object[]{self, command.key, rings.get(i).ring, rings.toString()});
                         trigger(new Add(self, ringNodes.get(rings.get(i).ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
@@ -235,7 +235,7 @@ public class Application extends ComponentDefinition {
                         }
                         temp.add(ring);
                         int index = storeCounter % ringNodes.get(ring).size();
-                        log.info("{} sening add for key {} to ring {} and node {}, index: {}", new Object[]{self, command.key, ring, ringNodes.get(ring).get(index), index});
+                        //log.info("{} sening add for key {} to ring {} and node {}, index: {}", new Object[]{self, command.key, ring, ringNodes.get(ring).get(index), index});
                         trigger(new Add(self, ringNodes.get(ring).get(index), TYPE.ADD, item, storeCounter, self), network);
                         storeCounter++;
                     }
@@ -319,7 +319,7 @@ public class Application extends ComponentDefinition {
                 Long external2 = time - msg.endInnerLatency;
                 Long total = external1 + internal + external2;
 
-                log.info("{} got add response: {} ex: {} {}, internal {} , total: {}", new Object[]{self, msg.key, external1, external2, internal, total});
+                //log.info("{} got add response: {} ex: {} {}, internal {} , total: {}", new Object[]{self, msg.key, external1, external2, internal, total});
 
                 ringController.get(msg.fromRing).add(0, new RingController(external1, external2, internal, total));
 

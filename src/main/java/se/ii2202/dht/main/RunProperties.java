@@ -6,14 +6,14 @@ import java.util.Arrays;
 
 public class RunProperties {
 
-    public final int runTime = 800; //In seconds
+    public final int runTime = 2000; //In seconds
 
     public final int M = 14; //Number of bits in identifier
-    public final int nNode = 10; //Number of nodes in each ring
-    public final int nRings = 1; //Number of rings
-    public final int nApps = 1; //Number of applications
+    public final int nNode = 500; //Number of nodes in each ring
+    public final int nRings = 5; //Number of rings
+    public final int nApps = 540; //Number of applications
 
-    public final int replications = 1; //Not lower than 1 and not bigger than nRings
+    public final int replications = 5; //Not lower than 1 and not bigger than nRings
 
 
     //Time for handles to process work
